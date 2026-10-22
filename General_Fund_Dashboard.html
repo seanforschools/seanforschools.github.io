@@ -84,6 +84,19 @@ select{
   border:1px solid var(--rule);border-radius:4px;
 }
 .hidden{display:none !important}
+.subreport{margin-top:22px;border-top:1px solid var(--rule);padding-top:18px}
+.sub-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.subreport h3{font-family:Georgia,"Times New Roman",serif;font-weight:600;font-size:18px;margin:0}
+.sub-head select{padding:6px 8px;font:inherit;background:var(--bg);color:var(--ink);border:1px solid var(--rule);border-radius:4px}
+.sub-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.sub-card{border:1px solid var(--rule);border-radius:6px;padding:12px 14px;background:var(--bg)}
+.sub-card h4{margin:0 0 2px;font-size:14px}
+.sub-card .sub-total{font-size:13px;color:var(--muted);margin:0 0 8px;font-variant-numeric:tabular-nums}
+.sub-card ol{margin:0;padding-left:0;list-style:none}
+.sub-card li{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:4px 0;border-top:1px solid var(--rule);font-variant-numeric:tabular-nums}
+.sub-card li:first-child{border-top:none}
+.sub-card .code{color:var(--muted)}
+.sub-card .pct{color:var(--muted);margin-left:6px}
 h2{font-family:Georgia,"Times New Roman",serif;font-weight:600;font-size:22px;margin:0 0 4px}
 .total{font-variant-numeric:tabular-nums;font-size:15px;color:var(--muted);margin:0 0 14px}
 .total strong{color:var(--ink);font-weight:600}
@@ -140,6 +153,22 @@ tr.total-row td{font-weight:600;border-bottom:none;border-top:2px solid var(--ru
       <div class="chartbox" id="chartBox"><canvas id="chart" role="img" aria-label="Chart of general fund data"></canvas></div>
       <p class="note" id="note"></p>
 
+      <section id="subreport" class="subreport hidden" aria-label="Top line items by category">
+        <div class="sub-head">
+          <h3>Top 5 line items by category</h3>
+          <label>Year <select id="subYear"></select></label>
+        </div>
+        <div class="sub-grid" id="subGrid"></div>
+      </section>
+
+      <section id="progSubreport" class="subreport hidden" aria-label="Breakdown by program">
+        <div class="sub-head">
+          <h3>Breakdown by program</h3>
+          <label>Year <select id="progYear"></select></label>
+        </div>
+        <div class="sub-grid" id="progGrid"></div>
+      </section>
+
       <div class="table-wrap">
         <table>
           <thead><tr id="thead"></tr></thead>
@@ -184,13 +213,18 @@ const GROUPS = {
       {name:"Vocational Education Instruction",    values:[1431877,1123200,1291588,1446868,1172173,1260045]},
       {name:"Special Education Instruction",       values:[23208631,24844756,26370223,28854003,30959216,37019271]},
       {name:"Community Service",                   values:[0,0,23514,32220,0,35124]},
-      {name:"Instructional Support Services",      values:[9707535,10139027,10861220,11787328,10977750,14852997]},
+      {name:"Instructional Support Services",      values:[9707535,10139027,10861220,11787328,10977927,14852997]},
       {name:"Pupil Support Services",              values:[17263623,12672036,13946262,14472222,16515942,15988428]},
-      {name:"Sites and Buildings",                 values:[17783765,19787601,20857411,22213483,21823750,22583415]},
+      {name:"Sites and Buildings",                 values:[17783765,19787601,20857411,22213488,21823750,22583415]},
       {name:"Fiscal & Other Fixed Cost Programs",  values:[632351,817382,1096153,1294929,1736103,1539772]}
     ]
   }
 };
+
+const OBJECT_DETAIL = [{"c": 110, "d": "Admnistration/Supervision", "k": "Salaries", "v": [7689547, 7947447, 8233758, 8280845, 8851177]}, {"c": 140, "d": "Licensed Classroom Teacher", "k": "Salaries", "v": [44940945, 47063498, 49342685, 50381615, 51982868]}, {"c": 141, "d": "Non-Licensed Classroom Personnel", "k": "Salaries", "v": [1210105, 1355169, 1344691, 1305098, 1591402]}, {"c": 143, "d": "Licensed Instructional Support", "k": "Salaries", "v": [4014907, 4189571, 4291174, 5337850, 5539577]}, {"c": 144, "d": "Non-Licensed Instructional Support", "k": "Salaries", "v": [88333, 90428, 83565, 86060, 88689]}, {"c": 145, "d": "Substitute Teacher Salaries", "k": "Salaries", "v": [1057797, 1261352, 1169227, 1220209, 83500]}, {"c": 146, "d": "Substitute Non-Licensed /Instructional", "k": "Salaries", "v": [105720, 119971, 115311, 84481, 5000]}, {"c": 150, "d": "Physical Therapist", "k": "Salaries", "v": [161909, 170460, 205449, 207652, 216198]}, {"c": 151, "d": "Occupational Therapist", "k": "Salaries", "v": [418747, 470250, 515030, 502089, 644314]}, {"c": 152, "d": "Speech Language Pathologist", "k": "Salaries", "v": [1645896, 1790967, 1763803, 1777682, 1847682]}, {"c": 153, "d": "Audiologist", "k": "Salaries", "v": [43307, 50384, 52484, 53054, 57095]}, {"c": 154, "d": "Licensed School Nurse", "k": "Salaries", "v": [278987, 745654, 884191, 1040594, 1059408]}, {"c": 155, "d": "Licensed Nursing Services", "k": "Salaries", "v": [581021, 236290, 255919, 146300, 151800]}, {"c": 156, "d": "School Social Worker", "k": "Salaries", "v": [983917, 1070108, 1133778, 1037575, 1022006]}, {"c": 157, "d": "School Psychologist", "k": "Salaries", "v": [627266, 685753, 777549, 767137, 913417]}, {"c": 161, "d": "Certified Paraprofessional", "k": "Salaries", "v": [3937350, 4081334, 4113138, 4773799, 6158799]}, {"c": 162, "d": "Certified One-to-One Paraprofessional", "k": "Salaries", "v": [159913, 146803, 180996, 0, 0]}, {"c": 165, "d": "School Counselor", "k": "Salaries", "v": [1485623, 1658147, 1719113, 2102163, 2230083]}, {"c": 169, "d": "Alcohol/Chem Depend Counselor", "k": "Salaries", "v": [31404, 46153, 51129, 64172, 65038]}, {"c": 170, "d": "Non-Instructional Support", "k": "Salaries", "v": [11657557, 12183342, 13196269, 14110837, 13423058]}, {"c": 174, "d": "Adapted Physical Education", "k": "Salaries", "v": [184684, 209451, 228729, 236164, 303014]}, {"c": 175, "d": "Cultural Liaison", "k": "Salaries", "v": [52188, 54052, 55955, 57649, 58324]}, {"c": 185, "d": "Other Salary Payments - Licensed", "k": "Salaries", "v": [2122464, 1994392, 2464950, 1547260, 1958411]}, {"c": 186, "d": "Other Salaries - Non-Licensed", "k": "Salaries", "v": [1124495, 1249857, 1338255, 1209799, 1130498]}, {"c": 191, "d": "Severance Pay", "k": "Salaries", "v": [216770, 224674, 23058, 208862, 250000]}, {"c": 195, "d": "Salary Chargeback", "k": "Salaries", "v": [3223, 3191, 4264, 1233, 500]}, {"c": 199, "d": "Cash In Lieu Of Benefits", "k": "Salaries", "v": [311941, 225485, 168249, 55585, 260000]}, {"c": 210, "d": "FICA (Social Security & Medicare)", "k": "Employee Benefits", "v": [6207614, 6464791, 6785310, 6947322, 7525313]}, {"c": 214, "d": "Public Employees Retirement (PERA)", "k": "Employee Benefits", "v": [1433744, 1488294, 1583342, 1669181, 1834623]}, {"c": 218, "d": "Teacher Retirement (TRA)", "k": "Employee Benefits", "v": [5499599, 5856522, 6324948, 6920870, 7298148]}, {"c": 219, "d": "MN Paid Leave", "k": "Employee Benefits", "v": [0, 0, 0, 210041, 431779]}, {"c": 220, "d": "Health Insurance", "k": "Employee Benefits", "v": [6335741, 6923793, 7287203, 7505587, 9090999]}, {"c": 230, "d": "Life Insurance", "k": "Employee Benefits", "v": [84042, 79479, 71763, 37053, 28174]}, {"c": 235, "d": "Dental Insurance", "k": "Employee Benefits", "v": [220151, 207382, 198594, 121262, 21816]}, {"c": 240, "d": "Long-Term Disability", "k": "Employee Benefits", "v": [74068, 76012, 74449, 56195, 124814]}, {"c": 250, "d": "403(B) or 457 Match", "k": "Employee Benefits", "v": [687067, 684767, 876874, 970733, 1035194]}, {"c": 251, "d": "Tax-Advantage Employer Health Arrangements", "k": "Employee Benefits", "v": [383482, 275006, 229468, 100868, 0]}, {"c": 270, "d": "Workers' Compensation", "k": "Employee Benefits", "v": [522545, 452980, 488864, 515574, 510023]}, {"c": 280, "d": "Unemployment Compensation", "k": "Employee Benefits", "v": [61706, 22040, 84015, 102486, 70000]}, {"c": 281, "d": "Summer Unemployment", "k": "Employee Benefits", "v": [0, 421086, 733539, 558164, 625000]}, {"c": 291, "d": "Other Postemployment Benefits (OPEB)", "k": "Employee Benefits", "v": [161300, 47079, 47649, 50000, 50000]}, {"c": 295, "d": "Benefit Chargeback", "k": "Employee Benefits", "v": [277, 511, 682, 197, 0]}, {"c": 296, "d": "Deferred Comp Plans", "k": "Employee Benefits", "v": [0, 0, 0, 0, 17808]}, {"c": 299, "d": "Other Employee Benefits", "k": "Employee Benefits", "v": [4800, 6900, 9900, 9600, 9600]}, {"c": 303, "d": "Federal Subawards and Subcontracts up to $25k", "k": "Purchased Services", "v": [106956, 101713, 39497, 49456, 0]}, {"c": 304, "d": "Federal Subawards Over $25k", "k": "Purchased Services", "v": [98491, 118661, 5033, 204, 0]}, {"c": 305, "d": "Contracted Services", "k": "Purchased Services", "v": [4338406, 3525283, 2571164, 2514127, 4318392]}, {"c": 307, "d": "Contract Subs For Special Ed", "k": "Purchased Services", "v": [0, 0, 0, 0, 78783]}, {"c": 308, "d": "Federal Tuition Bill up to $50k", "k": "Purchased Services", "v": [0, 0, 0, 0, 50000]}, {"c": 309, "d": "Federal Tuition Bill over $50k", "k": "Purchased Services", "v": [0, 0, 0, 0, 1400637]}, {"c": 310, "d": "School Resource Officer (SRO)", "k": "Purchased Services", "v": [167471, 213944, 236457, 250000, 250000]}, {"c": 311, "d": "Other Security Services", "k": "Purchased Services", "v": [1762, 0, 675, 0, 0]}, {"c": 315, "d": "Technology Repairs & Maintenance", "k": "Purchased Services", "v": [0, 632, 69582, 5198, 43500]}, {"c": 316, "d": "Services from Other Minnesota Joint-Powers Ag", "k": "Purchased Services", "v": [0, 9473, 28734, 0, 0]}, {"c": 320, "d": "Telephone", "k": "Purchased Services", "v": [208442, 197230, 200849, 248580, 179705]}, {"c": 329, "d": "Postage", "k": "Purchased Services", "v": [35715, 22373, 33486, 33570, 33182]}, {"c": 330, "d": "Utilities", "k": "Purchased Services", "v": [3876490, 3862293, 4022313, 4174729, 4411010]}, {"c": 335, "d": "Short-Term Leases or Rentals", "k": "Purchased Services", "v": [309134, 314397, 390984, 151050, 248202]}, {"c": 340, "d": "Property Insurance", "k": "Purchased Services", "v": [901762, 1207535, 1426359, 1867603, 1679772]}, {"c": 343, "d": "Languague Pathologist Services over $25k", "k": "Purchased Services", "v": [0, 0, 3815, 0, 0]}, {"c": 350, "d": "Repairs & Maintenance", "k": "Purchased Services", "v": [1399902, 1925989, 1891258, 5501351, 3222957]}, {"c": 358, "d": "Foreign Language Interpret Svc", "k": "Purchased Services", "v": [4767, 6766, 0, 0, 0]}, {"c": 360, "d": "Transportation Contracts with Private or Public C", "k": "Purchased Services", "v": [2091958, 1853817, 1615414, 2038074, 1778350]}, {"c": 365, "d": "Interdepartmental Transportation", "k": "Purchased Services", "v": [-74110, -107175, -132891, 249806, 268911]}, {"c": 366, "d": "Travel, Conventions and Conferences", "k": "Purchased Services", "v": [324494, 477083, 350858, 573299, 602292]}, {"c": 368, "d": "Out-of-State Travel, Federal Reimbursed", "k": "Purchased Services", "v": [5849, 0, 1775, 0, 0]}, {"c": 369, "d": "Field Trips/Entry Fees", "k": "Purchased Services", "v": [481778, 448750, 448802, 147654, 272000]}, {"c": 373, "d": "Languague Pathologist Services to $25k", "k": "Purchased Services", "v": [0, 0, 25000, 0, 0]}, {"c": 379, "d": "Qualified Mental Health Professional Services", "k": "Purchased Services", "v": [0, 0, 250, 0, 0]}, {"c": 380, "d": "Short-Term Leases for Computer or other Techn", "k": "Purchased Services", "v": [32588, 0, 0, 0, 0]}, {"c": 389, "d": "Staff Tuition and Other Reimbursements", "k": "Purchased Services", "v": [7934, 4973, 2606, 950, 1000]}, {"c": 390, "d": "Payments for Education Purposes to other MN", "k": "Purchased Services", "v": [838741, 1071576, 1085372, 831575, 861694]}, {"c": 392, "d": "Out-of-State Placement", "k": "Purchased Services", "v": [6686, 990, 0, 7000, 3000]}, {"c": 393, "d": "Special Education & Transition Programs", "k": "Purchased Services", "v": [16510, 20266, 51717, 26000, 29000]}, {"c": 394, "d": "Payments for Educ to Other Agencies", "k": "Purchased Services", "v": [931479, 852339, 1336120, 1403205, 1190000]}, {"c": 396, "d": "Salary Purchased from Another District", "k": "Purchased Services", "v": [20389, 34826, 37078, 0, 40000]}, {"c": 397, "d": "Benefits Purchased from Another District", "k": "Purchased Services", "v": [5341, 9446, 10199, 0, 12000]}, {"c": 398, "d": "Interdepartmental Services Chargeback", "k": "Purchased Services", "v": [-601276, -450117, -1064657, -1053501, -1131270]}, {"c": 401, "d": "General Supply", "k": "Supplies & Materials", "v": [1897699, 2076979, 2184921, 1619972, 2452695]}, {"c": 405, "d": "Software Non-Instructional", "k": "Supplies & Materials", "v": [307710, 371382, 419856, 956224, 884950]}, {"c": 406, "d": "Software Instructional", "k": "Supplies & Materials", "v": [237342, 252729, 311373, 516274, 309562]}, {"c": 430, "d": "Instructional Supplies", "k": "Supplies & Materials", "v": [681433, 780786, 915121, 1107640, 493262]}, {"c": 433, "d": "Individualized Instructional Supplies", "k": "Supplies & Materials", "v": [98290, 157456, 120356, 172743, 164050]}, {"c": 440, "d": "Fuel", "k": "Supplies & Materials", "v": [543131, 679097, 512594, 645555, 796260]}, {"c": 455, "d": "Technology Supplies Non-Instructional", "k": "Supplies & Materials", "v": [1765, 1647, 1146, 8450, 6400]}, {"c": 456, "d": "Technology Supplies Instructional", "k": "Supplies & Materials", "v": [524, 2397, 4061, 26937, 22150]}, {"c": 460, "d": "Textbooks and Workbooks", "k": "Supplies & Materials", "v": [713977, 807888, 772670, 445440, 809390]}, {"c": 461, "d": "Standardized Tests", "k": "Supplies & Materials", "v": [169667, 216942, 221147, 148101, 159500]}, {"c": 465, "d": "Technology Devices Non-Instructional", "k": "Supplies & Materials", "v": [73487, 313748, 36620, 33461, 26946]}, {"c": 466, "d": "Technology Devices Instructional", "k": "Supplies & Materials", "v": [2808, 51997, 28090, 10577, 1000]}, {"c": 470, "d": "Media Resources", "k": "Supplies & Materials", "v": [46067, 94346, 53391, 34338, 39970]}, {"c": 490, "d": "Food", "k": "Supplies & Materials", "v": [59313, 65041, 74482, 28145, 26235]}, {"c": 505, "d": "Capitalized Software Non-Instructional", "k": "Capital Expenditures", "v": [844849, 632490, 717606, 510696, 17000]}, {"c": 506, "d": "Capitalized Software Instructional", "k": "Capital Expenditures", "v": [537705, 465689, 410626, 482696, 1051453]}, {"c": 510, "d": "Site or Grounds Acquisition", "k": "Capital Expenditures", "v": [287729, 1176556, 3863446, 542324, 500000]}, {"c": 520, "d": "Building Acquisition or Improvement", "k": "Capital Expenditures", "v": [4239962, 5237172, 4528110, 3425763, 5796810]}, {"c": 530, "d": "Equipment", "k": "Capital Expenditures", "v": [1009856, 503168, 485391, 487946, 630290]}, {"c": 532, "d": "Bus Equipment", "k": "Capital Expenditures", "v": [2096, 0, 0, 0, 0]}, {"c": 533, "d": "Equipment Purchased for Special Education Inst", "k": "Capital Expenditures", "v": [0, 0, 12153, 0, 0]}, {"c": 535, "d": "Long-Term Leases", "k": "Capital Expenditures", "v": [27603, 0, 0, 0, 0]}, {"c": 548, "d": "Pupil Transportation Vehicles", "k": "Capital Expenditures", "v": [0, 82363, 172204, 66023, 0]}, {"c": 550, "d": "Other Vehicles Purchased", "k": "Capital Expenditures", "v": [66009, 104184, 48465, 50000, 50000]}, {"c": 555, "d": "Capitalized Technology Equipment Non-Instructional", "k": "Capital Expenditures", "v": [198930, 270092, 580900, 468122, 421126]}, {"c": 556, "d": "Capitalized Technology Equipment Instructional", "k": "Capital Expenditures", "v": [1329241, 918595, 1927124, 1454176, 4597952]}, {"c": 560, "d": "Principal on Long-Term Computer or Tech Leas", "k": "Capital Expenditures", "v": [69504, 86240, 84603, 37000, 38500]}, {"c": 561, "d": "Interest on Technology Lease", "k": "Capital Expenditures", "v": [10496, 0, 0, 2983, 3000]}, {"c": 570, "d": "Principal on Lease - Building or Land", "k": "Capital Expenditures", "v": [475480, 533070, 543731, 609127, 565698]}, {"c": 571, "d": "Interest on Lease - Building or Land", "k": "Capital Expenditures", "v": [47137, 0, 0, 0, 0]}, {"c": 580, "d": "Principal on Capital Lease", "k": "Capital Expenditures", "v": [436435, 539325, 552256, 539255, 361154]}, {"c": 581, "d": "Interest on Capital Lease", "k": "Capital Expenditures", "v": [346052, 241369, 230188, 239690, 419166]}, {"c": 589, "d": "Long-Term Lease Transactions (Contra Expense)", "k": "Capital Expenditures", "v": [-27603, 0, 0, 0, 0]}, {"c": 810, "d": "Judgments Against the School District", "k": "Other Expenditures", "v": [0, 0, 0, 400, 3000]}, {"c": 820, "d": "Dues, Memberships, Licenses", "k": "Other Expenditures", "v": [168261, 156873, 146093, 145410, 151146]}, {"c": 891, "d": "TRA and PERA Special Pension Expense", "k": "Other Expenditures", "v": [356403, 395199, 401420, 0, 0]}, {"c": 895, "d": "Federal Indirect Costs", "k": "Other Expenditures", "v": [0, -450606, -38987, -50093, -50000]}, {"c": 896, "d": "Taxes, Special Assessments", "k": "Other Expenditures", "v": [442, 56251, -1998, 19139, 2500]}, {"c": 898, "d": "Scholarships", "k": "Other Expenditures", "v": [182627, 162091, 192180, 170000, 200000]}];
+
+const PROGRAM_DETAIL = [{"p": "Administration", "k": "Salaries", "v": [3494455, 3713457, 3844634, 3907844, 3956033]}, {"p": "Administration", "k": "Employee Benefits", "v": [849530, 922593, 959999, 1037651, 967709]}, {"p": "Administration", "k": "Purchased Services", "v": [49499, 93799, 134425, 113327, 99848]}, {"p": "Administration", "k": "Supplies & Materials", "v": [4415, 10293, 21526, 9603, 4500]}, {"p": "Administration", "k": "Capital Expenditures", "v": [182, 0, 2317, 0, 0]}, {"p": "Administration", "k": "Other Expenditures", "v": [90568, 58828, 78001, 57000, 64511]}, {"p": "District Support Services", "k": "Salaries", "v": [2792890, 2883784, 2791319, 2875144, 2867774]}, {"p": "District Support Services", "k": "Employee Benefits", "v": [644758, 649002, 692553, 710663, 731809]}, {"p": "District Support Services", "k": "Purchased Services", "v": [417680, 755878, 521090, 476083, 483579]}, {"p": "District Support Services", "k": "Supplies & Materials", "v": [146915, 187072, 197692, 328284, 293359]}, {"p": "District Support Services", "k": "Capital Expenditures", "v": [437599, 440679, 565381, 189942, 173252]}, {"p": "District Support Services", "k": "Other Expenditures", "v": [-34232, -172527, -51219, -42233, -42159]}, {"p": "Elementary & Secondary Instruction", "k": "Salaries", "v": [41286289, 42561013, 43853314, 44660185, 45049406]}, {"p": "Elementary & Secondary Instruction", "k": "Employee Benefits", "v": [10357213, 10619348, 11211362, 11573536, 12795956]}, {"p": "Elementary & Secondary Instruction", "k": "Purchased Services", "v": [3223215, 3471745, 3463176, 2414180, 4167417]}, {"p": "Elementary & Secondary Instruction", "k": "Supplies & Materials", "v": [2218058, 2626215, 2672221, 2403993, 1964311]}, {"p": "Elementary & Secondary Instruction", "k": "Capital Expenditures", "v": [1995257, 1270935, 2204886, 2248896, 2276039]}, {"p": "Elementary & Secondary Instruction", "k": "Other Expenditures", "v": [433945, 497961, 444728, 195703, 227035]}, {"p": "Vocational Education Instruction", "k": "Salaries", "v": [693668, 770508, 785963, 609660, 629023]}, {"p": "Vocational Education Instruction", "k": "Employee Benefits", "v": [195334, 230779, 240182, 185326, 185222]}, {"p": "Vocational Education Instruction", "k": "Purchased Services", "v": [220292, 277188, 413461, 370187, 411000]}, {"p": "Vocational Education Instruction", "k": "Supplies & Materials", "v": [7790, 9508, 3107, 7000, 14800]}, {"p": "Vocational Education Instruction", "k": "Capital Expenditures", "v": [2067, 0, 0, 0, 20000]}, {"p": "Vocational Education Instruction", "k": "Other Expenditures", "v": [4048, 3604, 4156, 0, 0]}, {"p": "Special Education Instruction", "k": "Salaries", "v": [18825163, 20010345, 21610365, 23155678, 26010337]}, {"p": "Special Education Instruction", "k": "Employee Benefits", "v": [4974236, 5440145, 5941677, 6430438, 8179265]}, {"p": "Special Education Instruction", "k": "Purchased Services", "v": [582820, 499096, 915129, 1004958, 2356210]}, {"p": "Special Education Instruction", "k": "Supplies & Materials", "v": [161445, 252335, 217877, 263241, 300800]}, {"p": "Special Education Instruction", "k": "Capital Expenditures", "v": [163235, 7671, 36013, 84435, 150000]}, {"p": "Special Education Instruction", "k": "Other Expenditures", "v": [137856, 160631, 132942, 20466, 22659]}, {"p": "Community Service", "k": "Salaries", "v": [0, 0, 0, 0, 0]}, {"p": "Community Service", "k": "Employee Benefits", "v": [0, 23514, 32220, 0, 35124]}, {"p": "Community Service", "k": "Purchased Services", "v": [0, 0, 0, 0, 0]}, {"p": "Community Service", "k": "Supplies & Materials", "v": [0, 0, 0, 0, 0]}, {"p": "Community Service", "k": "Capital Expenditures", "v": [0, 0, 0, 0, 0]}, {"p": "Community Service", "k": "Other Expenditures", "v": [0, 0, 0, 0, 0]}, {"p": "Instructional Support Services", "k": "Salaries", "v": [6662987, 7256860, 7750354, 7174413, 7801832]}, {"p": "Instructional Support Services", "k": "Employee Benefits", "v": [1721507, 1888762, 2008997, 1924171, 2081982]}, {"p": "Instructional Support Services", "k": "Purchased Services", "v": [356981, 337725, 339584, 328081, 328774]}, {"p": "Instructional Support Services", "k": "Supplies & Materials", "v": [306358, 348261, 374103, 837580, 851545]}, {"p": "Instructional Support Services", "k": "Capital Expenditures", "v": [1037222, 969487, 1264760, 687562, 3760664]}, {"p": "Instructional Support Services", "k": "Other Expenditures", "v": [53972, 60126, 49530, 26120, 28200]}, {"p": "Pupil Support Services", "k": "Salaries", "v": [7348643, 7993495, 8734418, 9729035, 9083055]}, {"p": "Pupil Support Services", "k": "Employee Benefits", "v": [1792203, 2124327, 2476703, 2751273, 2620575]}, {"p": "Pupil Support Services", "k": "Purchased Services", "v": [2182731, 1978565, 1672207, 2515663, 2443940]}, {"p": "Pupil Support Services", "k": "Supplies & Materials", "v": [916378, 1388008, 1093466, 1137476, 1398847]}, {"p": "Pupil Support Services", "k": "Capital Expenditures", "v": [414709, 433204, 465233, 377395, 438511]}, {"p": "Pupil Support Services", "k": "Other Expenditures", "v": [17372, 28662, 30195, 5100, 3500]}, {"p": "Sites and Buildings", "k": "Salaries", "v": [4031921, 4134723, 4342305, 4483376, 4494398]}, {"p": "Sites and Buildings", "k": "Employee Benefits", "v": [1141355, 1108172, 1232907, 1162075, 1075649]}, {"p": "Sites and Buildings", "k": "Purchased Services", "v": [7687057, 7212914, 5933851, 10061348, 8012577]}, {"p": "Sites and Buildings", "k": "Supplies & Materials", "v": [1071854, 1050743, 1075837, 766680, 1364208]}, {"p": "Sites and Buildings", "k": "Capital Expenditures", "v": [5851210, 7668335, 9618213, 5327571, 7633683]}, {"p": "Sites and Buildings", "k": "Other Expenditures", "v": [4204, -317477, 10375, 22700, 2900]}, {"p": "Fiscal & Other Fixed Cost Programs", "k": "Salaries", "v": [0, 0, 0, 0, 0]}, {"p": "Fiscal & Other Fixed Cost Programs", "k": "Employee Benefits", "v": [0, 0, 0, 0, 0]}, {"p": "Fiscal & Other Fixed Cost Programs", "k": "Purchased Services", "v": [817382, 1096153, 1294929, 1736103, 1539772]}, {"p": "Fiscal & Other Fixed Cost Programs", "k": "Supplies & Materials", "v": [0, 0, 0, 0, 0]}, {"p": "Fiscal & Other Fixed Cost Programs", "k": "Capital Expenditures", "v": [0, 0, 0, 0, 0]}, {"p": "Fiscal & Other Fixed Cost Programs", "k": "Other Expenditures", "v": [0, 0, 0, 0, 0]}];
+const PROGRAM_ORDER = ["Administration", "District Support Services", "Elementary & Secondary Instruction", "Vocational Education Instruction", "Special Education Instruction", "Community Service", "Instructional Support Services", "Pupil Support Services", "Sites and Buildings", "Fiscal & Other Fixed Cost Programs"];
 
 const PALETTE = ["#1F6F78","#C98A2B","#7A5A9E","#6E8B3D","#B5533C",
                  "#4C6A92","#C77C98","#7C8A91","#3E8E7E","#A39036"];
@@ -219,6 +253,10 @@ const pieLabels = {
 };
 
 const state = { group: "revenue", view: "trend", year: 5, unit: "dollars" };
+const SUB_YEARS = YEARS.slice(1);
+const SUB_CATS = ["Salaries","Employee Benefits","Purchased Services","Supplies & Materials","Capital Expenditures","Other Expenditures"];
+let subYear = 4;
+let progYear = 4;
 let chart = null;
 
 const $ = id => document.getElementById(id);
@@ -357,6 +395,75 @@ function render() {
   }
 
   renderTable(g);
+  syncSubYears();
+  renderSubreport();
+  renderProgSubreport();
+}
+
+function syncSubYears() {
+  const isPie = state.view === "pie";
+  if (isPie && state.year >= 1) {
+    subYear = state.year - 1;
+    progYear = state.year - 1;
+  }
+  $("subYear").value = String(subYear);
+  $("progYear").value = String(progYear);
+  $("subYear").disabled = isPie;
+  $("progYear").disabled = isPie;
+}
+
+function buildProgYearOptions() {
+  $("progYear").innerHTML = SUB_YEARS.map((y, i) => `<option value="${i}">${y}</option>`).join("");
+  $("progYear").value = String(progYear);
+}
+
+function renderProgSubreport() {
+  const show = state.group === "program";
+  $("progSubreport").classList.toggle("hidden", !show);
+  if (!show) return;
+  const idx = state.view === "pie" ? state.year - 1 : progYear;
+  if (idx < 0) {
+    $("progGrid").innerHTML = '<p class="note">Line-item detail begins in 2022-23.</p>';
+    return;
+  }
+  $("progGrid").innerHTML = PROGRAM_ORDER.map(name => {
+    const items = PROGRAM_DETAIL.filter(x => x.p === name);
+    const total = items.reduce((a, x) => a + x.v[idx], 0);
+    const lines = SUB_CATS.map(cat => {
+      const it = items.find(x => x.k === cat);
+      const amt = it ? it.v[idx] : 0;
+      const share = total ? ((amt / total) * 100).toFixed(1) : "0.0";
+      return `<li><span>${cat}</span><span>${amt === 0 ? "-" : fmt(amt)}<span class="pct">${share}%</span></span></li>`;
+    }).join("");
+    return `<div class="sub-card"><h4>${name}</h4><p class="sub-total">Total ${fmt(total)}</p><ol>${lines}</ol></div>`;
+  }).join("");
+}
+
+function buildSubYearOptions() {
+  $("subYear").innerHTML = SUB_YEARS.map((y, i) => `<option value="${i}">${y}</option>`).join("");
+  $("subYear").value = String(subYear);
+}
+
+function renderSubreport() {
+  const show = state.group === "object";
+  $("subreport").classList.toggle("hidden", !show);
+  if (!show) return;
+  const idx = state.view === "pie" ? state.year - 1 : subYear;
+  if (idx < 0) {
+    $("subGrid").innerHTML = '<p class="note">Line-item detail begins in 2022-23.</p>';
+    return;
+  }
+  $("subGrid").innerHTML = SUB_CATS.map(cat => {
+    const items = OBJECT_DETAIL.filter(x => x.k === cat);
+    const catTotal = items.reduce((a, x) => a + x.v[idx], 0);
+    const top = items.filter(x => x.v[idx] > 0).sort((a, b) => b.v[idx] - a.v[idx]).slice(0, 5);
+    const lines = top.map(x =>
+      `<li><span>${x.d} <span class="code">(${x.c})</span></span>` +
+      `<span>${fmt(x.v[idx])}<span class="pct">${catTotal ? ((x.v[idx] / catTotal) * 100).toFixed(1) : "0.0"}%</span></span></li>`
+    ).join("");
+    return `<div class="sub-card"><h4>${cat}</h4><p class="sub-total">Total ${fmt(catTotal)}</p>` +
+           `<ol>${lines || "<li>No positive line items</li>"}</ol></div>`;
+  }).join("");
 }
 
 document.querySelectorAll('input[name="group"]').forEach(el =>
@@ -366,8 +473,12 @@ document.querySelectorAll('input[name="view"]').forEach(el =>
 document.querySelectorAll('input[name="unit"]').forEach(el =>
   el.addEventListener("change", e => { state.unit = e.target.value; render(); }));
 $("yearSelect").addEventListener("change", e => { state.year = Number(e.target.value); render(); });
+$("subYear").addEventListener("change", e => { subYear = Number(e.target.value); renderSubreport(); });
+$("progYear").addEventListener("change", e => { progYear = Number(e.target.value); renderProgSubreport(); });
 
 buildYearOptions();
+buildSubYearOptions();
+buildProgYearOptions();
 render();
 </script>
 </body>

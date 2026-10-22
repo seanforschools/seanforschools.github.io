@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>General Fund Summary Report</title>
+<style>
+:root{--bg:#F4F6F5;--surface:#FFFFFF;--ink:#1B2A33;--muted:#5D6B74;--rule:#D5DCD9;--accent:#1F6F78;color-scheme:light}
+@media (prefers-color-scheme: dark){:root{--bg:#131B20;--surface:#1A252C;--ink:#E6EDEB;--muted:#9AAAB2;--rule:#2D3B44;--accent:#64B6BE;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:28px 20px 48px}
+a.back{color:var(--accent);text-decoration:none;font-size:14px}
+a.back:hover{text-decoration:underline}
+header{border-bottom:1px solid var(--rule);padding-bottom:16px;margin:16px 0 24px}
+h1{font-family:Georgia,"Times New Roman",serif;font-weight:600;font-size:28px;letter-spacing:-0.01em;margin:0 0 4px}
+header p{margin:0;color:var(--muted);font-size:14px}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:18px}
+.note{font-size:13px;color:var(--muted);margin:0 0 12px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:14px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--rule);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal}
+th{font-weight:600;color:var(--muted);font-size:13px}
+tbody tr:hover{background:var(--bg)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Back to the data dashboard</a>
+  <header>
+    <h1>General Fund Summary Report</h1>
+    <p>Revenue, expenditures, and unassigned fund balance, 2021-22 through 2026-27.</p>
+  </header>
+
+  <section class="panel">
+    <p class="note">2021-22 through 2024-25 are actual results, 2025-26 is the revised budget, and 2026-27 is the budget. Unassigned fund balance is the year-end figure.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr id="thead"></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script>
+const YEARS = ["2021-22 Actual","2022-23 Actual","2023-24 Actual","2024-25 Actual","2025-26 Revised","2026-27 Budget"];
+
+const REVENUE = [
+  [30523562,36247065,38618569,39201612,41856751,51866232],
+  [92390034,91862955,101281621,106647141,109666889,110337077],
+  [5717834,4061304,3571839,2098274,1469446,2598383],
+  [13925691,5935245,8409760,6938241,4773973,5715294]
+];
+
+const EXPENDITURES = [
+  [81410464,85136017,89324186,93712673,96595335,99891858],
+  [20402505,21676138,23006642,24796599,25775133,28673291],
+  [15054008,15537658,15723063,14687851,19019930,19843117],
+  [4926904,4833214,5872435,5655829,5753857,6192370],
+  [13346485,9901481,10790312,14156803,8915801,14452149],
+  [709707,707732,319808,698708,284856,306646]
+];
+
+const UNASSIGNED = [12367832,14195135,17950757,15751926,15429354,16546804];
+
+const fmt = n => (n < 0 ? "-" : "") + "$" + Math.abs(Math.round(n)).toLocaleString("en-US");
+const colSum = (rows, j) => rows.reduce((a, r) => a + r[j], 0);
+
+const revenue = YEARS.map((_, j) => colSum(REVENUE, j));
+const expenditures = YEARS.map((_, j) => colSum(EXPENDITURES, j));
+const variance = revenue.map((r, j) => r - expenditures[j]);
+const pct = UNASSIGNED.map((u, j) => (u / expenditures[j]) * 100);
+
+const rows = [
+  { name: "Total revenue", values: revenue.map(fmt) },
+  { name: "Total expenditures", values: expenditures.map(fmt) },
+  { name: "Revenue less expenditures", values: variance.map(fmt) },
+  { name: "Unassigned fund balance", values: UNASSIGNED.map(fmt) },
+  { name: "Unassigned balance as % of expenditures", values: pct.map(v => v.toFixed(1) + "%") }
+];
+
+document.getElementById("thead").innerHTML = "<th>Measure</th>" + YEARS.map(y => `<th>${y}</th>`).join("");
+document.getElementById("tbody").innerHTML = rows.map(r =>
+  `<tr><td>${r.name}</td>${r.values.map(v => `<td>${v}</td>`).join("")}</tr>`
+).join("");
+</script>
+</body>
+</html>

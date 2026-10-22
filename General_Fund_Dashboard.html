@@ -146,16 +146,6 @@ tr.total-row td{font-weight:600;border-bottom:none;border-top:2px solid var(--ru
     </main>
   </div>
 
-  <section class="panel summary-panel">
-    <h2>Revenue, expenditures, and fund balance, 2021-22 to 2026-27</h2>
-    <p class="note">2021-22 through 2024-25 are actual results, 2025-26 is the revised budget, and 2026-27 is the budget. Unassigned fund balance is the year-end figure.</p>
-    <div class="table-wrap">
-      <table>
-        <thead><tr id="sumHead"></tr></thead>
-        <tbody id="sumBody"></tbody>
-      </table>
-    </div>
-  </section>
 </div>
 
 <script>
@@ -198,8 +188,6 @@ const GROUPS = {
     ]
   }
 };
-
-const UNASSIGNED = [12367832,14195135,17950757,15751926,15429354,16546804];
 
 const PALETTE = ["#1F6F78","#C98A2B","#7A5A9E","#6E8B3D","#B5533C",
                  "#4C6A92","#C77C98","#7C8A91","#3E8E7E","#A39036"];
@@ -261,26 +249,6 @@ function renderTable(g) {
   ).join("");
   const totals = YEARS.map((_, j) => `<td>${fmt(yearTotal(g, j))}</td>`).join("");
   $("tbody").innerHTML = rows + `<tr class="total-row"><td>Total</td>${totals}</tr>`;
-}
-
-function renderSummaryTable() {
-  const rev = YEARS.map((_, j) => yearTotal(GROUPS.revenue, j));
-  const exp = YEARS.map((_, j) => yearTotal(GROUPS.object, j));
-  const variance = rev.map((r, j) => r - exp[j]);
-  const pct = UNASSIGNED.map((u, j) => (u / exp[j]) * 100);
-
-  const rows = [
-    { name: "Total revenue", values: rev.map(fmt) },
-    { name: "Total expenditures", values: exp.map(fmt) },
-    { name: "Revenue less expenditures", values: variance.map(fmt) },
-    { name: "Unassigned fund balance", values: UNASSIGNED.map(fmt) },
-    { name: "Unassigned balance as % of expenditures", values: pct.map(v => v.toFixed(1) + "%") }
-  ];
-
-  $("sumHead").innerHTML = "<th>Measure</th>" + YEARS.map(y => `<th>${y}</th>`).join("");
-  $("sumBody").innerHTML = rows.map(r =>
-    `<tr><td>${r.name}</td>${r.values.map(v => `<td>${v}</td>`).join("")}</tr>`
-  ).join("");
 }
 
 function render() {
@@ -398,7 +366,6 @@ $("yearSelect").addEventListener("change", e => { state.year = Number(e.target.v
 
 buildYearOptions();
 render();
-renderSummaryTable();
 </script>
 </body>
 </html>

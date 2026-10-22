@@ -101,7 +101,7 @@ tr.total-row td{font-weight:600;border-bottom:none;border-top:2px solid var(--ru
 <div class="wrap">
   <header>
     <h1>General Fund Dashboard</h1>
-    <p>Actual results for 2021-22 through 2023-24, revised budget for 2024-25, and budget for 2025-26.</p>
+    <p>Actual results for 2021-22 through 2024-25, revised budget for 2025-26, and budget for 2026-27.</p>
   </header>
 
   <div class="groupbar" id="groupFieldset" role="radiogroup" aria-label="Grouping">
@@ -115,7 +115,7 @@ tr.total-row td{font-weight:600;border-bottom:none;border-top:2px solid var(--ru
     <aside class="panel" aria-label="Dashboard controls">
       <fieldset>
         <legend>View</legend>
-        <label class="opt"><input type="radio" name="view" value="trend" checked><span>Trend, 2021-22 to 2025-26</span></label>
+        <label class="opt"><input type="radio" name="view" value="trend" checked><span>Trend, 2021-22 to 2026-27</span></label>
         <label class="opt"><input type="radio" name="view" value="pie"><span>Share of one year</span></label>
       </fieldset>
 
@@ -147,8 +147,8 @@ tr.total-row td{font-weight:600;border-bottom:none;border-top:2px solid var(--ru
   </div>
 
   <section class="panel summary-panel">
-    <h2>Revenue, expenditures, and fund balance, 2021-22 to 2025-26</h2>
-    <p class="note">2021-22 through 2023-24 are actual results, 2024-25 is the revised budget, and 2025-26 is the budget. Unassigned fund balance is the year-end figure.</p>
+    <h2>Revenue, expenditures, and fund balance, 2021-22 to 2026-27</h2>
+    <p class="note">2021-22 through 2024-25 are actual results, 2025-26 is the revised budget, and 2026-27 is the budget. Unassigned fund balance is the year-end figure.</p>
     <div class="table-wrap">
       <table>
         <thead><tr id="sumHead"></tr></thead>
@@ -159,47 +159,47 @@ tr.total-row td{font-weight:600;border-bottom:none;border-top:2px solid var(--ru
 </div>
 
 <script>
-const YEARS = ["2021-22 Actual","2022-23 Actual","2023-24 Actual","2024-25 Revised","2025-26 Budget"];
+const YEARS = ["2021-22 Actual","2022-23 Actual","2023-24 Actual","2024-25 Actual","2025-26 Revised","2026-27 Budget"];
 
 const GROUPS = {
   revenue: {
     title: "Revenue by source",
     series: [
-      {name:"Property Taxes",  values:[30523562,36247065,38618569,38621799,41856751]},
-      {name:"State Sources",   values:[92390034,91862955,101281621,104244351,107461889]},
-      {name:"Federal Sources", values:[5717834,4061304,3571839,2991013,2939712]},
-      {name:"Other",           values:[13925691,5935245,8409760,4878191,4748973]}
+      {name:"Property Taxes",  values:[30523562,36247065,38618569,39201612,41856751,51866232]},
+      {name:"State Sources",   values:[92390034,91862955,101281621,106647141,109666889,110337077]},
+      {name:"Federal Sources", values:[5717834,4061304,3571839,2098274,1469446,2598383]},
+      {name:"Other",           values:[13925691,5935245,8409760,6938241,4773973,5715294]}
     ]
   },
   object: {
     title: "Expenditure by object",
     series: [
-      {name:"Salaries",             values:[81410464,85136017,89324186,95871821,98413135]},
-      {name:"Employee Benefits",    values:[20402505,21676138,23006642,25094840,27866807]},
-      {name:"Purchased Services",   values:[15054008,15537658,15723063,18254816,18902945]},
-      {name:"Supplies & Materials", values:[4926904,4833214,5872435,6034360,5071578]},
-      {name:"Capital Expenditures", values:[13346485,9901481,10790312,12851405,8565481]},
-      {name:"Other Expenditures",   values:[709707,707732,319808,393563,-161964]}
+      {name:"Salaries",             values:[81410464,85136017,89324186,93712673,96595335,99891858]},
+      {name:"Employee Benefits",    values:[20402505,21676138,23006642,24796599,25775133,28673291]},
+      {name:"Purchased Services",   values:[15054008,15537658,15723063,14687851,19019930,19843117]},
+      {name:"Supplies & Materials", values:[4926904,4833214,5872435,5655829,5753857,6192370]},
+      {name:"Capital Expenditures", values:[13346485,9901481,10790312,14156803,8915801,14452149]},
+      {name:"Other Expenditures",   values:[709707,707732,319808,698708,284856,306646]}
     ]
   },
   program: {
     title: "Expenditure by program",
     series: [
-      {name:"Administration",                      values:[4562356,4488649,4798969,5015553,5049381]},
-      {name:"District Support Services",           values:[3841521,4405611,4743888,5153628,4071311]},
-      {name:"Elementary & Secondary Instruction",  values:[57418414,59513977,61047218,65049946,63536834]},
-      {name:"Vocational Education Instruction",    values:[1431877,1123200,1291588,1406075,1343472]},
-      {name:"Special Education Instruction",       values:[23208631,24844756,26370223,29922265,32504601]},
-      {name:"Community Service",                   values:[0,0,23514,32220,32595]},
-      {name:"Instructional Support Services",      values:[9707535,10139027,10861220,11235310,12464403]},
-      {name:"Pupil Support Services",              values:[17263623,12672036,13946432,15124451,16385204]},
-      {name:"Sites and Buildings",                 values:[17783765,19787601,20857241,24146998,21534078]},
-      {name:"Fiscal & Other Fixed Cost Programs",  values:[632351,817382,1096153,1414359,1736103]}
+      {name:"Administration",                      values:[4562356,4488649,4798969,5040902,5125425,5092601]},
+      {name:"District Support Services",           values:[3841521,4405611,4743888,4716816,4537883,4507614]},
+      {name:"Elementary & Secondary Instruction",  values:[57418414,59513977,61047218,63849687,63496493,66480164]},
+      {name:"Vocational Education Instruction",    values:[1431877,1123200,1291588,1446868,1172173,1260045]},
+      {name:"Special Education Instruction",       values:[23208631,24844756,26370223,28854003,30959216,37019271]},
+      {name:"Community Service",                   values:[0,0,23514,32220,0,35124]},
+      {name:"Instructional Support Services",      values:[9707535,10139027,10861220,11787328,10977750,14852997]},
+      {name:"Pupil Support Services",              values:[17263623,12672036,13946262,14472222,16515942,15988428]},
+      {name:"Sites and Buildings",                 values:[17783765,19787601,20857411,22213483,21823750,22583415]},
+      {name:"Fiscal & Other Fixed Cost Programs",  values:[632351,817382,1096153,1294929,1736103,1539772]}
     ]
   }
 };
 
-const UNASSIGNED = [12367832,14195135,17950757,15766035,14397412];
+const UNASSIGNED = [12367832,14195135,17950757,15751926,15429354,16546804];
 
 const PALETTE = ["#1F6F78","#C98A2B","#7A5A9E","#6E8B3D","#B5533C",
                  "#4C6A92","#C77C98","#7C8A91","#3E8E7E","#A39036"];
@@ -227,7 +227,7 @@ const pieLabels = {
   }
 };
 
-const state = { group: "revenue", view: "trend", year: 4, unit: "dollars" };
+const state = { group: "revenue", view: "trend", year: 5, unit: "dollars" };
 let chart = null;
 
 const $ = id => document.getElementById(id);
@@ -296,7 +296,7 @@ function render() {
   $("unitFieldset").classList.toggle("hidden", isPie);
   $("title").textContent = isPie
     ? `${g.title}, ${YEARS[state.year]}`
-    : `${g.title}, 2021-22 to 2025-26${isPercent ? " (percent of total)" : ""}`;
+    : `${g.title}, 2021-22 to 2026-27${isPercent ? " (percent of total)" : ""}`;
 
   if (chart) { chart.destroy(); chart = null; }
 

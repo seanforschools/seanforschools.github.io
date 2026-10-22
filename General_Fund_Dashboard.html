@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>General Fund Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#F4F6F5;
+  --surface:#FFFFFF;
+  --ink:#1B2A33;
+  --muted:#5D6B74;
+  --rule:#D5DCD9;
+  --accent:#1F6F78;
+  --focus:#C98A2B;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#131B20;
+    --surface:#1A252C;
+    --ink:#E6EDEB;
+    --muted:#9AAAB2;
+    --rule:#2D3B44;
+    --accent:#64B6BE;
+    --focus:#E0A94A;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:15px;
+  line-height:1.5;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:28px 20px 48px}
+header{border-bottom:1px solid var(--rule);padding-bottom:16px;margin-bottom:20px}
+h1{
+  font-family:Georgia,"Times New Roman",serif;
+  font-weight:600;
+  font-size:30px;
+  letter-spacing:-0.01em;
+  margin:0 0 4px;
+}
+header p{margin:0;color:var(--muted);font-size:14px}
+
+.groupbar{
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px;
+  margin:0 0 20px;
+}
+.groupbar .groupbar-label{font-size:13px;color:var(--muted);margin-right:6px}
+.pill{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:8px 14px;border:1px solid var(--rule);border-radius:999px;
+  background:var(--surface);cursor:pointer;font-size:14px;
+}
+.pill:hover{border-color:var(--muted)}
+.pill:has(input:checked){border-color:var(--accent);color:var(--accent);font-weight:600}
+.pill input{accent-color:var(--accent);margin:0;width:15px;height:15px}
+
+.layout{display:grid;grid-template-columns:250px 1fr;gap:24px;align-items:start}
+@media (max-width:800px){.layout{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:18px}
+fieldset{border:0;margin:0 0 22px;padding:0;min-width:0}
+fieldset:last-child{margin-bottom:0}
+legend{font-size:13px;color:var(--muted);padding:0;margin-bottom:8px}
+.opt{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 10px;border-radius:4px;cursor:pointer;
+}
+.opt:hover{background:var(--bg)}
+.opt input{accent-color:var(--accent);width:16px;height:16px;margin:0}
+.opt span{font-size:15px}
+input:focus-visible,select:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+select{
+  width:100%;padding:9px 10px;font:inherit;
+  background:var(--bg);color:var(--ink);
+  border:1px solid var(--rule);border-radius:4px;
+}
+.hidden{display:none !important}
+h2{font-family:Georgia,"Times New Roman",serif;font-weight:600;font-size:22px;margin:0 0 4px}
+.total{font-variant-numeric:tabular-nums;font-size:15px;color:var(--muted);margin:0 0 14px}
+.total strong{color:var(--ink);font-weight:600}
+.chartbox{position:relative;height:380px}
+.note{font-size:13px;color:var(--muted);margin:12px 0 0}
+table{width:100%;border-collapse:collapse;margin-top:26px;font-variant-numeric:tabular-nums;font-size:14px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--rule);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal}
+th{font-weight:600;color:var(--muted);font-size:13px}
+tbody tr:hover{background:var(--bg)}
+tr.total-row td{font-weight:600;border-bottom:none;border-top:2px solid var(--rule)}
+.swatch{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px;vertical-align:middle}
+.table-wrap{overflow-x:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>General Fund Dashboard</h1>
+    <p>Actual results for 2021-22 through 2023-24, revised budget for 2024-25, and budget for 2025-26.</p>
+  </header>
+
+  <div class="groupbar" id="groupFieldset" role="radiogroup" aria-label="Grouping">
+    <span class="groupbar-label">Grouping</span>
+    <label class="pill"><input type="radio" name="group" value="revenue" checked><span>Revenue by source</span></label>
+    <label class="pill"><input type="radio" name="group" value="object"><span>Expenditure by object</span></label>
+    <label class="pill"><input type="radio" name="group" value="program"><span>Expenditure by program</span></label>
+  </div>
+
+  <div class="layout">
+    <aside class="panel" aria-label="Dashboard controls">
+      <fieldset>
+        <legend>View</legend>
+        <label class="opt"><input type="radio" name="view" value="trend" checked><span>Trend, 2021-22 to 2025-26</span></label>
+        <label class="opt"><input type="radio" name="view" value="pie"><span>Share of one year</span></label>
+      </fieldset>
+
+      <fieldset id="unitFieldset">
+        <legend>Amounts</legend>
+        <label class="opt"><input type="radio" name="unit" value="dollars" checked><span>Dollars</span></label>
+        <label class="opt"><input type="radio" name="unit" value="percent"><span>Percent of total</span></label>
+      </fieldset>
+
+      <fieldset id="yearFieldset" class="hidden">
+        <legend><label for="yearSelect">Year</label></legend>
+        <select id="yearSelect"></select>
+      </fieldset>
+    </aside>
+
+    <main class="panel" aria-live="polite">
+      <h2 id="title"></h2>
+      <p class="total" id="totalLine"></p>
+      <div class="chartbox" id="chartBox"><canvas id="chart" role="img" aria-label="Chart of general fund data"></canvas></div>
+      <p class="note" id="note"></p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr id="thead"></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <section class="panel summary-panel">
+    <h2>Revenue, expenditures, and fund balance, 2021-22 to 2025-26</h2>
+    <p class="note">2021-22 through 2023-24 are actual results, 2024-25 is the revised budget, and 2025-26 is the budget. Unassigned fund balance is the year-end figure.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr id="sumHead"></tr></thead>
+        <tbody id="sumBody"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script>
+const YEARS = ["2021-22 Actual","2022-23 Actual","2023-24 Actual","2024-25 Revised","2025-26 Budget"];
+
+const GROUPS = {
+  revenue: {
+    title: "Revenue by source",
+    series: [
+      {name:"Property Taxes",  values:[30523562,36247065,38618569,38621799,41856751]},
+      {name:"State Sources",   values:[92390034,91862955,101281621,104244351,107461889]},
+      {name:"Federal Sources", values:[5717834,4061304,3571839,2991013,2939712]},
+      {name:"Other",           values:[13925691,5935245,8409760,4878191,4748973]}
+    ]
+  },
+  object: {
+    title: "Expenditure by object",
+    series: [
+      {name:"Salaries",             values:[81410464,85136017,89324186,95871821,98413135]},
+      {name:"Employee Benefits",    values:[20402505,21676138,23006642,25094840,27866807]},
+      {name:"Purchased Services",   values:[15054008,15537658,15723063,18254816,18902945]},
+      {name:"Supplies & Materials", values:[4926904,4833214,5872435,6034360,5071578]},
+      {name:"Capital Expenditures", values:[13346485,9901481,10790312,12851405,8565481]},
+      {name:"Other Expenditures",   values:[709707,707732,319808,393563,-161964]}
+    ]
+  },
+  program: {
+    title: "Expenditure by program",
+    series: [
+      {name:"Administration",                      values:[4562356,4488649,4798969,5015553,5049381]},
+      {name:"District Support Services",           values:[3841521,4405611,4743888,5153628,4071311]},
+      {name:"Elementary & Secondary Instruction",  values:[57418414,59513977,61047218,65049946,63536834]},
+      {name:"Vocational Education Instruction",    values:[1431877,1123200,1291588,1406075,1343472]},
+      {name:"Special Education Instruction",       values:[23208631,24844756,26370223,29922265,32504601]},
+      {name:"Community Service",                   values:[0,0,23514,32220,32595]},
+      {name:"Instructional Support Services",      values:[9707535,10139027,10861220,11235310,12464403]},
+      {name:"Pupil Support Services",              values:[17263623,12672036,13946432,15124451,16385204]},
+      {name:"Sites and Buildings",                 values:[17783765,19787601,20857241,24146998,21534078]},
+      {name:"Fiscal & Other Fixed Cost Programs",  values:[632351,817382,1096153,1414359,1736103]}
+    ]
+  }
+};
+
+const UNASSIGNED = [12367832,14195135,17950757,15766035,14397412];
+
+const PALETTE = ["#1F6F78","#C98A2B","#7A5A9E","#6E8B3D","#B5533C",
+                 "#4C6A92","#C77C98","#7C8A91","#3E8E7E","#A39036"];
+
+const pieLabels = {
+  id: "pieLabels",
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+    const ds = chart.data.datasets[0];
+    const total = ds.data.reduce((a, b) => a + b, 0);
+    chart.getDatasetMeta(0).data.forEach((arc, i) => {
+      const pct = (ds.data[i] / total) * 100;
+      if (pct < 3) return;
+      const { x, y } = arc.tooltipPosition();
+      ctx.save();
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "600 13px system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.shadowColor = "rgba(0,0,0,0.35)";
+      ctx.shadowBlur = 3;
+      ctx.fillText(Math.round(pct) + "%", x, y);
+      ctx.restore();
+    });
+  }
+};
+
+const state = { group: "revenue", view: "trend", year: 4, unit: "dollars" };
+let chart = null;
+
+const $ = id => document.getElementById(id);
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+const fmt = n => (n < 0 ? "-" : "") + "$" + Math.abs(Math.round(n)).toLocaleString("en-US");
+const fmtM = n => (n < 0 ? "-" : "") + "$" + (Math.abs(n) / 1e6).toFixed(Math.abs(n) < 1e7 ? 1 : 0) + "M";
+
+function yearTotal(g, idx) {
+  return g.series.reduce((sum, s) => sum + s.values[idx], 0);
+}
+
+function sortedByTotal(g) {
+  const sum = arr => arr.reduce((a, b) => a + b, 0);
+  return g.series
+    .map((s, i) => ({ s, i }))
+    .sort((a, b) => sum(b.s.values) - sum(a.s.values));
+}
+
+function buildYearOptions() {
+  const sel = $("yearSelect");
+  sel.innerHTML = YEARS.map((y, i) => `<option value="${i}">${y}</option>`).join("");
+  sel.value = String(state.year);
+}
+
+function renderTable(g) {
+  $("thead").innerHTML = "<th>Line item</th>" + YEARS.map(y => `<th>${y}</th>`).join("");
+  const rows = g.series.map((s, i) =>
+    `<tr><td><span class="swatch" style="background:${PALETTE[i % PALETTE.length]}"></span>${s.name}</td>` +
+    s.values.map(v => `<td>${fmt(v)}</td>`).join("") + `</tr>`
+  ).join("");
+  const totals = YEARS.map((_, j) => `<td>${fmt(yearTotal(g, j))}</td>`).join("");
+  $("tbody").innerHTML = rows + `<tr class="total-row"><td>Total</td>${totals}</tr>`;
+}
+
+function renderSummaryTable() {
+  const rev = YEARS.map((_, j) => yearTotal(GROUPS.revenue, j));
+  const exp = YEARS.map((_, j) => yearTotal(GROUPS.object, j));
+  const variance = rev.map((r, j) => r - exp[j]);
+  const pct = UNASSIGNED.map((u, j) => (u / exp[j]) * 100);
+
+  const rows = [
+    { name: "Total revenue", values: rev.map(fmt) },
+    { name: "Total expenditures", values: exp.map(fmt) },
+    { name: "Revenue less expenditures", values: variance.map(fmt) },
+    { name: "Unassigned fund balance", values: UNASSIGNED.map(fmt) },
+    { name: "Unassigned balance as % of expenditures", values: pct.map(v => v.toFixed(1) + "%") }
+  ];
+
+  $("sumHead").innerHTML = "<th>Measure</th>" + YEARS.map(y => `<th>${y}</th>`).join("");
+  $("sumBody").innerHTML = rows.map(r =>
+    `<tr><td>${r.name}</td>${r.values.map(v => `<td>${v}</td>`).join("")}</tr>`
+  ).join("");
+}
+
+function render() {
+
+  $("groupFieldset").classList.remove("hidden");
+  $("chartBox").classList.remove("hidden");
+
+  const g = GROUPS[state.group];
+  const isPie = state.view === "pie";
+  const isPercent = !isPie && state.unit === "percent";
+
+  $("yearFieldset").classList.toggle("hidden", !isPie);
+  $("unitFieldset").classList.toggle("hidden", isPie);
+  $("title").textContent = isPie
+    ? `${g.title}, ${YEARS[state.year]}`
+    : `${g.title}, 2021-22 to 2025-26${isPercent ? " (percent of total)" : ""}`;
+
+  if (chart) { chart.destroy(); chart = null; }
+
+  const textColor = css("--ink");
+  const gridColor = css("--rule");
+  const surface = css("--surface");
+  Chart.defaults.color = css("--muted");
+  Chart.defaults.font.family = "system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
+
+  if (!isPie) {
+    $("totalLine").innerHTML = "";
+    $("note").textContent = "Values below zero are shown as negative amounts, as they appear in the budget.";
+    chart = new Chart($("chart"), {
+      type: "bar",
+      data: {
+        labels: YEARS,
+        datasets: sortedByTotal(g).map(({ s, i }) => ({
+          label: s.name,
+          data: isPercent ? s.values.map((v, j) => (v / yearTotal(g, j)) * 100) : s.values,
+          backgroundColor: PALETTE[i % PALETTE.length],
+          borderWidth: 0,
+          borderRadius: 0
+        }))
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        scales: {
+          x: { stacked: true, grid: { color: gridColor } },
+          y: {
+            stacked: true,
+            grid: { color: gridColor },
+            max: isPercent ? 100 : undefined,
+            ticks: { callback: v => isPercent ? v.toFixed(0) + "%" : fmtM(v) }
+          }
+        },
+        plugins: {
+          legend: { position: "bottom", labels: { color: textColor, usePointStyle: true, boxWidth: 8 } },
+          tooltip: {
+            callbacks: {
+              label: c => isPercent
+                ? `${c.dataset.label}: ${c.parsed.y.toFixed(1)}% (${fmt(g.series.find(s => s.name === c.dataset.label).values[c.dataIndex])})`
+                : `${c.dataset.label}: ${fmt(c.parsed.y)}`
+            }
+          }
+        }
+      }
+    });
+  } else {
+    const idx = state.year;
+    const all = g.series.map((s, i) => ({ name: s.name, value: s.values[idx], color: PALETTE[i % PALETTE.length] }));
+    const items = all.filter(x => x.value > 0);
+    const excluded = all.filter(x => x.value <= 0).map(x => x.name);
+    const total = items.reduce((a, x) => a + x.value, 0);
+
+    $("totalLine").innerHTML = `Total for ${YEARS[idx]}: <strong>${fmt(yearTotal(g, idx))}</strong>`;
+    $("note").textContent = excluded.length
+      ? `Not shown in the pie because the amount is zero or negative: ${excluded.join(", ")}.`
+      : "";
+
+    chart = new Chart($("chart"), {
+      type: "pie",
+      plugins: [pieLabels],
+      data: {
+        labels: items.map(x => x.name),
+        datasets: [{
+          data: items.map(x => x.value),
+          backgroundColor: items.map(x => x.color),
+          borderColor: surface,
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "right", labels: { color: textColor, boxWidth: 12 } },
+          tooltip: {
+            callbacks: {
+              label: c => `${c.label}: ${fmt(c.parsed)} (${((c.parsed / total) * 100).toFixed(1)}%)`
+            }
+          }
+        }
+      }
+    });
+  }
+
+  renderTable(g);
+}
+
+document.querySelectorAll('input[name="group"]').forEach(el =>
+  el.addEventListener("change", e => { state.group = e.target.value; render(); }));
+document.querySelectorAll('input[name="view"]').forEach(el =>
+  el.addEventListener("change", e => { state.view = e.target.value; render(); }));
+document.querySelectorAll('input[name="unit"]').forEach(el =>
+  el.addEventListener("change", e => { state.unit = e.target.value; render(); }));
+$("yearSelect").addEventListener("change", e => { state.year = Number(e.target.value); render(); });
+
+buildYearOptions();
+render();
+renderSummaryTable();
+</script>
+</body>
+</html>

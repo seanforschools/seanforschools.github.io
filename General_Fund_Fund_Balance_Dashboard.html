@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fund Balance Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#F4F6F5; --surface:#FFFFFF; --ink:#1B2A33; --muted:#5D6B74; --rule:#D5DCD9;
+  --accent:#1F6F78; --focus:#C98A2B; --neg:#A8442E; --pos:#1F6F78;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#131B20; --surface:#1A252C; --ink:#E6EDEB; --muted:#9AAAB2; --rule:#2D3B44;
+    --accent:#64B6BE; --focus:#E0A94A; --neg:#E08A70; --pos:#64B6BE;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding:28px 20px 48px}
+a.back{color:var(--accent);text-decoration:none;font-size:14px;display:inline-block;margin-bottom:12px}
+a.back:hover{text-decoration:underline}
+header{border-bottom:1px solid var(--rule);padding-bottom:16px;margin-bottom:22px}
+h1{font-family:Georgia,"Times New Roman",serif;font-weight:600;font-size:30px;letter-spacing:-0.01em;margin:0 0 4px}
+header p{margin:0;color:var(--muted);font-size:14px}
+h2{font-family:Georgia,"Times New Roman",serif;font-weight:600;font-size:18px;margin:0 0 4px}
+.sub{font-size:13px;color:var(--muted);margin:0 0 12px}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:18px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:18px}
+.kpi{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:14px 16px}
+.kpi .label{font-size:13px;color:var(--muted);margin:0}
+.kpi .value{font-size:24px;font-weight:600;font-variant-numeric:tabular-nums;margin:4px 0 0}
+.kpi .hint{font-size:12px;color:var(--muted);margin:2px 0 0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+@media (max-width:820px){.grid2{grid-template-columns:1fr}}
+.chartbox{position:relative;height:320px}
+.chartbox.tall{height:520px}
+.controls{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin:10px 0 12px}
+.controls label{font-size:14px}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:999px;overflow:hidden}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{padding:6px 14px;cursor:pointer;font-size:14px;background:var(--surface)}
+.seg input:checked + label{background:var(--accent);color:#fff}
+.seg input:focus-visible + label{outline:2px solid var(--focus);outline-offset:2px}
+select{padding:6px 8px;font:inherit;background:var(--bg);color:var(--ink);border:1px solid var(--rule);border-radius:4px}
+.table-wrap{overflow-x:auto;margin-top:12px}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:14px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--rule);text-align:right;white-space:nowrap}
+th:first-child,th:nth-child(2),td:first-child,td:nth-child(2){text-align:left;white-space:normal}
+th{font-weight:600;color:var(--muted);font-size:13px}
+tbody tr:hover{background:var(--bg)}
+tr.group td{font-weight:600;background:var(--bg)}
+tr.total td{font-weight:600;border-top:2px solid var(--rule);border-bottom:none}
+.neg{color:var(--neg)}
+.note{font-size:13px;color:var(--muted);margin:12px 0 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Back to home</a>
+  <header>
+    <h1>Fund Balance Dashboard</h1>
+    <p>Fund balance by category and line item, 2024-25 audited through the 2026-27 budget.</p>
+  </header>
+
+  <div class="kpis">
+    <div class="kpi"><p class="label">Total fund balance, 2026-27</p><p class="value" id="kpiTotal"></p><p class="hint" id="kpiTotalHint"></p></div>
+    <div class="kpi"><p class="label">Unassigned balance, 2026-27</p><p class="value" id="kpiUnassigned"></p><p class="hint" id="kpiUnassignedHint"></p></div>
+    <div class="kpi"><p class="label">Unassigned as % of expenditures</p><p class="value" id="kpiPct"></p><p class="hint">2026-27 budget</p></div>
+    <div class="kpi"><p class="label">Planned change in fund balance</p><p class="value" id="kpiChange"></p><p class="hint">2026-27 revenue less expenditures</p></div>
+  </div>
+
+  <div class="grid2">
+    <section class="panel">
+      <h2>Fund balance by category</h2>
+      <p class="sub">Year-end balances, 2024-25 audited through 2026-27 budgeted</p>
+      <div class="chartbox"><canvas id="compChart" role="img" aria-label="Stacked bars of fund balance by category and year"></canvas></div>
+    </section>
+    <section class="panel">
+      <h2>2026-27 budget by category</h2>
+      <p class="sub">Revenue and expenditure budgets, with the net effect on each category</p>
+      <div class="chartbox"><canvas id="flowChart" role="img" aria-label="Bars of 2026-27 revenue, expenditures, and net change by category"></canvas></div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h2>Balances by line item</h2>
+    <p class="sub">Restricted and assigned line items, largest first</p>
+    <div class="controls">
+      <div class="seg" role="radiogroup" aria-label="Category">
+        <input type="radio" id="lineRestricted" name="linecat" value="Restricted" checked><label for="lineRestricted">Restricted</label>
+        <input type="radio" id="lineAssigned" name="linecat" value="Assigned"><label for="lineAssigned">Assigned</label>
+      </div>
+      <label>Year <select id="lineYear">
+        <option value="0">2024-25 Audited</option>
+        <option value="1">2025-26 Budgeted</option>
+        <option value="2" selected>2026-27 Budgeted</option>
+      </select></label>
+    </div>
+    <div class="chartbox tall"><canvas id="lineChart" role="img" aria-label="Horizontal bars of balances by line item"></canvas></div>
+  </section>
+
+  <section class="panel" style="margin-top:18px">
+    <h2>Detail table</h2>
+    <p class="sub">All line items, with 2026-27 revenue and expenditure budgets</p>
+    <div class="controls">
+      <div class="seg" role="radiogroup" aria-label="Show">
+        <input type="radio" id="tAll" name="tcat" value="All" checked><label for="tAll">All</label>
+        <input type="radio" id="tRestricted" name="tcat" value="Restricted"><label for="tRestricted">Restricted</label>
+        <input type="radio" id="tAssigned" name="tcat" value="Assigned"><label for="tAssigned">Assigned</label>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Category</th><th>Line item</th><th>2025-26 Budgeted Balance</th><th>2026-27 Revenue</th>
+          <th>2026-27 Expenditures</th><th>2026-27 Budgeted Balance</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <p class="note">Totals are sums of the line items. They can differ by $1 from the printed totals because of rounding in the source.</p>
+  </section>
+</div>
+
+<script>
+// Fund balance detail, 2026-27 budget document.
+// v = [2024-25 audited, 2025-26 budgeted, 2026-27 budgeted]; rev and exp are 2026-27 budget amounts.
+const $ = id => document.getElementById(id);
+const YEARS = ["2024-25 Audited","2025-26 Budgeted","2026-27 Budgeted"];
+
+const UNASSIGNED = { name:"Unassigned", cat:"Unassigned", v:[15751926,15429354,16546804], rev:139280581, exp:138163131 };
+const NONSPEND   = { name:"NonSpendable", cat:"NonSpendable", v:[388770,388770,388770], rev:0, exp:0 };
+
+const RESTRICTED_RAW = [
+ ["Student Activities",219885,219885,175000,175000,219885],
+ ["Staff Development",0,0,1508863,764283,744580],
+ ["Capital Projects Levy",1157424,2850474,5706029,6196124,2360379],
+ ["Literacy Incentive Aid",51014,142757,469000,358581,253176],
+ ["COP Financed with Lease Levy",0,0,555925,555925,0],
+ ["American Indian Ed Aid",0,0,71000,71000,0],
+ ["Operating Capital",1974873,1836900,2206351,2362211,1681040],
+ ["Learning & Development",0,0,2004576,2004576,0],
+ ["Area Learning Center",113895,0,1325000,1325000,0],
+ ["Qcomp",255712,82230,2351021,2433251,0],
+ ["Gifted & Talented",0,0,127653,127653,0],
+ ["English Learner",0,0,1290437,1290437,0],
+ ["Basic Skills",1674928,3058100,1857608,911665,4004043],
+ ["School Library Aid",70508,127845,100846,111239,117452],
+ ["Career and Tech ED",0,0,392043,392043,0],
+ ["Achievement & Integration",0,0,980761,980761,0],
+ ["Safe Schools",24517,0,343302,343302,0],
+ ["Literacy Aid",369605,245416,0,129806,115610],
+ ["Long-Term Facilities Maintenance",0,0,9320990,9320990,0],
+ ["Medical Assistance",581439,524912,450000,417453,557459]
+];
+
+const ASSIGNED_RAW = [
+ ["Capital - Victoria Filed House",80000,80000,0,0,80000],
+ ["Construction",348000,348000,0,0,348000],
+ ["Deferred Maintenance",300000,300000,0,0,300000],
+ ["Energy Efficiency",259495,259495,0,0,259495],
+ ["Federal Funding Reserve",250000,250000,0,0,250000],
+ ["Lease Levy ADJ",1000000,1000000,0,0,1000000],
+ ["MTSS-ADSIS",879961,879961,0,425000,454961],
+ ["Seperation/Retirement",1700000,1700000,0,0,1700000],
+ ["Site Carry-Over",1244271,394271,0,0,394271],
+ ["Transportation Center",5566722,5566722,0,500000,5066722],
+ ["Bus Fleet Replacement",200000,200000,0,0,200000]
+];
+
+const toLine = (cat, r) => ({ name: r[0], cat, v: [r[1], r[2], r[5]], rev: r[3], exp: r[4] });
+const LINES = [
+  ...RESTRICTED_RAW.map(r => toLine("Restricted", r)),
+  ...ASSIGNED_RAW.map(r => toLine("Assigned", r))
+];
+const ALL_ROWS = [UNASSIGNED, NONSPEND, ...LINES];
+
+const PALETTE = { Unassigned:"#1F6F78", NonSpendable:"#7C8A91", Restricted:"#C98A2B", Assigned:"#7A5A9E" };
+
+const fmt = n => (n < 0 ? "-" : "") + "$" + Math.abs(Math.round(n)).toLocaleString("en-US");
+const fmtM = n => (n < 0 ? "-" : "") + "$" + (Math.abs(n) / 1e6).toFixed(1) + "M";
+const sum = (rows, fn) => rows.reduce((a, r) => a + fn(r), 0);
+
+// Totals
+const totalFB = [0,1,2].map(j => sum(ALL_ROWS, r => r.v[j]));
+const totalRev = sum(ALL_ROWS, r => r.rev);
+const totalExp = sum(ALL_ROWS, r => r.exp);
+const unassigned27 = UNASSIGNED.v[2];
+const change27 = totalRev - totalExp;
+
+// KPI cards
+$("kpiTotal").textContent = fmt(totalFB[2]);
+$("kpiTotalHint").textContent = `Up from ${fmt(totalFB[1])} budgeted for 2025-26`;
+$("kpiUnassigned").textContent = fmt(unassigned27);
+$("kpiUnassignedHint").textContent = `Up from ${fmt(UNASSIGNED.v[1])} budgeted for 2025-26`;
+$("kpiPct").textContent = ((unassigned27 / totalExp) * 100).toFixed(2) + "%";
+$("kpiChange").textContent = (change27 < 0 ? "-" : "+") + fmt(Math.abs(change27));
+
+// Chart 1: stacked fund balance by category and year
+let compChart = new Chart($("compChart"), {
+  type: "bar",
+  data: {
+    labels: YEARS,
+    datasets: [
+      { label: "Unassigned", data: UNASSIGNED.v, backgroundColor: PALETTE.Unassigned },
+      { label: "NonSpendable", data: NONSPEND.v, backgroundColor: PALETTE.NonSpendable },
+      { label: "Restricted", data: [0,1,2].map(j => sum(LINES.filter(l => l.cat === "Restricted"), l => l.v[j])), backgroundColor: PALETTE.Restricted },
+      { label: "Assigned", data: [0,1,2].map(j => sum(LINES.filter(l => l.cat === "Assigned"), l => l.v[j])), backgroundColor: PALETTE.Assigned }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    scales: { x: { stacked: true }, y: { stacked: true, ticks: { callback: v => fmtM(v) } } },
+    plugins: {
+      legend: { position: "bottom", labels: { usePointStyle: true, boxWidth: 8 } },
+      tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmt(c.parsed.y)}` } }
+    }
+  }
+});
+
+// Chart 2: 2026-27 revenue, expenditures, and net by category
+const flowCats = ["Unassigned", "Restricted", "Assigned"];
+const flowRows = cat => ALL_ROWS.filter(r => r.cat === cat);
+const flowRev = flowCats.map(c => sum(flowRows(c), r => r.rev));
+const flowExp = flowCats.map(c => sum(flowRows(c), r => r.exp));
+const flowNet = flowRev.map((r, i) => r - flowExp[i]);
+new Chart($("flowChart"), {
+  type: "bar",
+  data: {
+    labels: flowCats,
+    datasets: [
+      { label: "Revenue budget", data: flowRev, backgroundColor: "#4C6A92" },
+      { label: "Expenditure budget", data: flowExp, backgroundColor: "#C98A2B" },
+      { label: "Net change", data: flowNet, backgroundColor: flowNet.map(v => v < 0 ? "#A8442E" : "#6E8B3D") }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    scales: { y: { ticks: { callback: v => fmtM(v) } } },
+    plugins: {
+      legend: { position: "bottom", labels: { usePointStyle: true, boxWidth: 8 } },
+      tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmt(c.parsed.y)}` } }
+    }
+  }
+});
+
+// Chart 3: line items for the chosen category and year
+let lineChart = null;
+function renderLineChart() {
+  const cat = document.querySelector('input[name="linecat"]:checked').value;
+  const j = Number($("lineYear").value);
+  const items = LINES.filter(l => l.cat === cat && l.v[j] > 0).sort((a, b) => b.v[j] - a.v[j]);
+  if (lineChart) lineChart.destroy();
+  lineChart = new Chart($("lineChart"), {
+    type: "bar",
+    data: {
+      labels: items.map(l => l.name),
+      datasets: [{ label: `${cat} balance, ${YEARS[j]}`, data: items.map(l => l.v[j]), backgroundColor: PALETTE[cat] }]
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true, maintainAspectRatio: false,
+      scales: { x: { ticks: { callback: v => fmtM(v) } } },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => `${fmt(c.parsed.x)}` } }
+      }
+    }
+  });
+}
+
+// Table: 2025-26 budgeted balance, 2026-27 revenue, expenditures, and budgeted balance
+function renderTable() {
+  const pick = document.querySelector('input[name="tcat"]:checked').value;
+  const rows = [];
+  const line = (cat, label, v25, rev, exp, v27, cls = "") =>
+    `<tr class="${cls}"><td>${cat}</td><td>${label}</td><td>${fmt(v25)}</td><td>${fmt(rev)}</td>` +
+    `<td>${fmt(exp)}</td><td>${fmt(v27)}</td></tr>`;
+  const show = cat => pick === "All" || pick === cat;
+
+  if (pick === "All") {
+    rows.push(line(UNASSIGNED.cat, UNASSIGNED.name, UNASSIGNED.v[1], UNASSIGNED.rev, UNASSIGNED.exp, UNASSIGNED.v[2]));
+    rows.push(line(NONSPEND.cat, NONSPEND.name, NONSPEND.v[1], NONSPEND.rev, NONSPEND.exp, NONSPEND.v[2]));
+  }
+  ["Restricted", "Assigned"].filter(show).forEach(cat => {
+    const group = LINES.filter(l => l.cat === cat);
+    rows.push(`<tr class="group"><td colspan="6">${cat}</td></tr>`);
+    group.forEach(l => rows.push(line(l.cat, l.name, l.v[1], l.rev, l.exp, l.v[2])));
+    rows.push(line(cat, "Subtotal",
+      sum(group, l => l.v[1]), sum(group, l => l.rev), sum(group, l => l.exp), sum(group, l => l.v[2]), "total"));
+  });
+
+  if (pick === "All") {
+    rows.push(line("", "Total", totalFB[1], totalRev, totalExp, totalFB[2], "total"));
+  }
+  $("tbody").innerHTML = rows.join("");
+}
+
+document.querySelectorAll('input[name="linecat"]').forEach(el => el.addEventListener("change", renderLineChart));
+$("lineYear").addEventListener("change", renderLineChart);
+document.querySelectorAll('input[name="tcat"]').forEach(el => el.addEventListener("change", renderTable));
+
+renderLineChart();
+renderTable();
+</script>
+</body>
+</html>

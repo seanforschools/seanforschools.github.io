@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open Enrollment: Net In vs Out by District</title>
+<style>
+:root{--bg:#ffffff;--surface:#f5f6f8;--text:#1d2330;--muted:#6b7280;--border:#dde1e7;--accent:#2563eb;--in:#2563eb;--out:#ea580c;--pos:#15803d;--neg:#dc2626}
+@media (prefers-color-scheme: dark){:root{--bg:#14171f;--surface:#1d222c;--text:#e6e9ef;--muted:#9aa3b2;--border:#2e3542;--accent:#60a5fa;--in:#60a5fa;--out:#fb923c;--pos:#4ade80;--neg:#f87171}}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text);padding:32px 20px;line-height:1.5}
+main{max-width:1000px;margin:0 auto}
+h1{font-size:26px;margin:0 0 8px}
+h2{font-size:18px;margin:0 0 4px}
+.intro{color:var(--muted);margin:0 0 24px}
+section{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:24px}
+.sub{color:var(--muted);font-size:13px;margin:0 0 12px}
+.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:12px;font-size:14px}
+select{font:inherit;font-size:14px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);max-width:100%}
+.tablewrap{overflow:auto;max-height:560px;border:1px solid var(--border);border-radius:8px;background:var(--bg)}
+table{border-collapse:collapse;font-size:13px;width:100%}
+th,td{padding:6px 8px;border-bottom:1px solid var(--border);white-space:nowrap;text-align:left}
+thead th{position:sticky;top:0;background:var(--surface);z-index:2}
+th.name{position:sticky;left:0;background:var(--bg);z-index:1;font-weight:500;min-width:230px}
+thead th.name{z-index:3;background:var(--surface)}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.pos{color:var(--pos)}
+.neg{color:var(--neg)}
+tr.total th,tr.total td{font-weight:600;border-top:2px solid var(--border)}
+button.link{background:none;border:none;padding:0;font:inherit;color:var(--accent);cursor:pointer;text-align:left}
+button.link:hover{text-decoration:underline}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:14px 0}
+.stat{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.stat .k{font-size:12px;color:var(--muted)}
+.stat .v{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+.legend{display:flex;gap:16px;font-size:13px;color:var(--muted);margin:4px 0 6px}
+.sw{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+svg{display:block;max-width:100%;height:auto}
+svg .grid{stroke:var(--border);stroke-width:1}
+svg .zero{stroke:var(--muted);stroke-width:1.2}
+svg .ax{fill:var(--muted);font-size:11px}
+svg .bin{fill:var(--in);opacity:.85}
+svg .bout{fill:var(--out);opacity:.85}
+svg .line{fill:none;stroke:var(--text);stroke-width:1.5;stroke-dasharray:4 3}
+svg .dot{fill:var(--text)}
+.dtable{margin-top:14px;border:1px solid var(--border);border-radius:8px;background:var(--bg)}
+.srow{display:grid;grid-template-columns:minmax(150px,230px) 1fr 130px;gap:10px;align-items:center;padding:3px 0;font-size:13px}
+.slabel{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.strack{position:relative;height:16px;background:var(--bg);border-radius:3px}
+.strack::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--muted)}
+.sbar{position:absolute;top:2px;bottom:2px;border-radius:2px}
+.sbar.pos{background:var(--pos)}
+.sbar.neg{background:var(--neg)}
+.sval{text-align:right;font-variant-numeric:tabular-nums}
+.sval small{display:block;color:var(--muted);font-size:11px}
+.snapwrap{max-height:620px;overflow:auto;padding-right:6px}
+ul{padding-left:20px;margin:0 0 8px}
+li,p{font-size:14px}
+.source{font-size:13px;color:var(--muted);border-top:1px solid var(--border);padding-top:14px;margin-top:8px}
+@media (max-width:640px){.srow{grid-template-columns:110px 1fr 90px}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Open Enrollment: Net In vs Out by District</h1>
+  <p class="intro">Students entering (IN) and leaving (OUT) each district under open enrollment, by school year, 2016-17 through 2025-26. Net = IN minus OUT. Positive values mean more students came in than went out.</p>
+
+  <section>
+    <h2>Net by district and year</h2>
+    <p class="sub">Districts are ordered by the absolute value of net in 2025-26, largest to smallest. Click a district name to open its detail view below.</p>
+    <div class="controls">
+      <label>Show
+        <select id="mode">
+          <option value="net">Net (IN minus OUT)</option>
+          <option value="in">IN only</option>
+          <option value="out">OUT only</option>
+        </select>
+      </label>
+    </div>
+    <div class="tablewrap"><table id="matrix"></table></div>
+  </section>
+
+  <section>
+    <h2>District detail</h2>
+    <div class="controls">
+      <label>District
+        <select id="pick"></select>
+      </label>
+    </div>
+    <h3 id="detailTitle" style="font-size:16px;margin:8px 0 0"></h3>
+    <div class="stats" id="stats"></div>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--in)"></span>IN</span>
+      <span><span class="sw" style="background:var(--out)"></span>OUT</span>
+      <span>&#8226; Net (dot)</span>
+    </div>
+    <div id="chart"></div>
+    <div class="dtable"><table id="dtable"></table></div>
+  </section>
+
+  <section>
+    <h2 id="snapTitle">Net by district</h2>
+    <p class="sub">Ranked from most net IN to most net OUT. Districts with no flows in the selected year are not shown.</p>
+    <div class="controls">
+      <label>School year
+        <select id="year"></select>
+      </label>
+    </div>
+    <div class="snapwrap" id="snap"></div>
+  </section>
+
+  <h3 style="font-size:16px;margin:24px 0 8px">Notes</h3>
+  <ul>
+    <li>Years are school years. For example, 2025-26 is the 2025-26 school year.</li>
+    <li>A blank IN or OUT entry in the source file is counted as zero.</li>
+    <li>District names were standardized so the same district appears once. For example, "Saint Paul" and "St. Paul" are combined, and "Burnsville" and "Burnsville-Eagan-Savage" are combined because the district was renamed and the two names appear in different years.</li>
+    <li>Values are counts of students as reported in the source file. Small changes between years can reflect enrollment policy and reporting differences as well as real shifts.</li>
+  </ul>
+
+  <p class="source">Source: uploaded file oPEN_eNROLLMENT.xlsx (IN and OUT counts by school year and district).</p>
+</main>
+
+<script>
+const D = {"years": ["2016-17", "2017-18", "2018-19", "2019-20", "2020-21", "2021-22", "2022-23", "2023-24", "2024-25", "2025-26"], "districts": [{"name": "Albert Lea", "in": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "out": [0, 0, 1, 1, 0, 0, 0, 0, 0, 0]}, {"name": "Alden-Conger", "in": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "out": [0, 0, 0, 0, 0, 1, 0, 0, 0, 0]}, {"name": "Anoka-Hennepin", "in": [2, 1, 1, 2, 2, 1, 0, 0, 0, 0], "out": [0, 0, 0, 0, 0, 0, 0, 1, 0, 0]}, {"name": "Belle Plaine", "in": [19, 18, 18, 21, 14, 10, 13, 15, 16, 10], "out": [4, 0, 1, 0, 1, 0, 0, 0, 0, 0]}, {"name": "Bloomington", "in": [4, 2, 5, 3, 7, 5, 4, 6, 3, 4], "out": [11, 10, 8, 5, 4, 5, 7, 7, 3, 3]}, {"name": "Brooklyn Center", "in": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "out": [0, 1, 2, 2, 6, 1, 0, 2, 0, 0]}, {"name": "Buffalo-Hanover-Montrose", "in": [0, 0, 0, 1, 0, 0, 0, 0, 0, 1], "out": [0, 0, 0, 0, 0, 0, 1, 0, 0, 0]}, {"name": "Burnsville-Eagan-Savage", "in": [5, 3, 3, 5, 3, 3, 0, 4, 3, 3], "out": [0, 0, 2, 1, 3, 1, 1, 0, 1, 1]}, {"name": "Centennial", "in": [0, 1, 0, 0, 0, 0, 0, 0, 0, 0], "out": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"name": "Central", "in": [18, 34, 22, 28, 27, 22, 16, 18, 21, 26], "out": [0, 4, 4, 4, 2, 2, 3, 1, 1, 0]}, {"name": "Columbia Heights", "in": [0, 1, 0, 0, 2, 2, 0, 0, 0, 0], "out": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"name": "Dassel-Cokato", "in": [0, 0, 0, 0, 0, 0, 0, 0, 2, 2], "out": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"name": "Delano", "in": [0, 0, 0, 0, 0, 0, 0, 0, 2, 1], "out": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"name": "Duluth", "in": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "out": [0, 0, 0, 0, 1, 0, 0, 0, 0, 0]}, {"name": "Eden Prairie", "in": [38, 54, 60, 66, 66, 59, 44, 40, 47, 50], "out": [168, 168, 186, 186, 205, 223, 197, 204, 223, 220]}, {"name": "Edina", "in": [0, 2, 2, 3, 1, 5, 1, 0, 0, 0], "out": [11, 9, 4, 5, 5, 8, 5, 7, 9, 7]}, {"name": "Elk River", "in": [0, 0, 0, 0, 0, 0, 2, 0, 0, 1], "out": [0, 0, 0, 0, 0, 1, 1, 0, 0, 0]}, {"name": "Fergus Falls", "in": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "out": [2, 3, 5, 4, 3, 0, 1, 1, 7, 1]}, {"name": "Fridley", "in": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "out": [0, 0, 0, 0, 0, 0, 0, 0, 0, 2]}, {"name": "Glencoe-Silver Lake", "in": [6, 13, 17, 11, 13, 11, 10, 12, 11, 7], "out": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"name": "Hinckley-Finlayson", "in": [0, 1, 1, 0, 0, 0, 0, 0, 0, 0], "out": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"name": "Hopkins", "in": [2, 6, 8, 6, 10, 8, 15, 13, 10, 9], "out": [5, 12, 10, 12, 11, 8, 9, 18, 19, 12]}, {"name": "Houston", "in": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "out": [5, 14, 17, 9, 25, 7, 6, 6, 10, 8]}, {"name": "Howard Lake-Waverly-Winsted", "in": [0, 0, 0, 0, 0, 1, 1, 2, 1, 2], "out": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"name": "Hutchinson", "in": [0, 0, 0, 0, 0, 0, 1, 1, 2, 2], "out": [0, 0, 1, 0, 0, 0, 0, 0, 0, 0]}, {"name": "Jordan", "in": [19, 18, 19, 17, 18, 24, 23, 19, 22, 17], "out": [17, 17, 24, 16, 14, 11, 8, 9, 15, 14]}, {"name": "Lakeville", "in": [0, 0, 0, 0, 0, 0, 0, 2, 0, 0], "out": [0, 0, 2, 0, 4, 0, 1, 0, 0, 0]}, {"name": "Le Sueur-Henderson", "in": [1, 0, 0, 0, 0, 3, 2, 3, 2, 1], "out": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"name": "Lester Prairie", "in": [0, 0, 0, 0, 0, 0, 0, 1, 0, 0], "out": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"name": "Mahtomedi", "in": [0, 0, 0, 1, 0, 0, 0, 0, 0, 0], "out": [0, 0, 0, 0, 0, 0, 0, 0, 0, 2]}, {"name": "Mankato", "in": [0, 0, 0, 0, 0, 0, 2, 0, 0, 0], "out": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"name": "Menahga", "in": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "out": [0, 0, 0, 0, 0, 0, 0, 0, 0, 3]}, {"name": "Minneapolis", "in": [12, 13, 9, 7, 9, 4, 3, 8, 11, 5], "out": [2, 3, 3, 3, 7, 3, 2, 0, 1, 4]}, {"name": "Minnetonka", "in": [16, 26, 35, 33, 39, 26, 30, 43, 43, 50], "out": [755, 804, 852, 869, 860, 909, 914, 929, 968, 1018]}, {"name": "Monticello", "in": [0, 0, 1, 0, 1, 0, 0, 0, 0, 0], "out": [0, 0, 0, 0, 0, 0, 1, 0, 0, 0]}, {"name": "Moorhead", "in": [0, 0, 0, 0, 0, 0, 0, 0, 1, 0], "out": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"name": "New Prague", "in": [2, 2, 1, 1, 1, 1, 0, 0, 0, 0], "out": [1, 1, 2, 1, 0, 0, 0, 3, 5, 5]}, {"name": "North Branch", "in": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "out": [0, 0, 1, 1, 0, 0, 1, 0, 0, 0]}, {"name": "Northfield", "in": [0, 0, 0, 0, 0, 0, 0, 0, 2, 2], "out": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"name": "Orono", "in": [0, 1, 1, 1, 0, 0, 0, 0, 0, 0], "out": [2, 2, 0, 0, 1, 6, 4, 4, 3, 0]}, {"name": "Osseo", "in": [2, 2, 4, 2, 4, 0, 2, 0, 1, 1], "out": [0, 0, 2, 2, 1, 3, 1, 2, 2, 4]}, {"name": "Owatonna", "in": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "out": [0, 0, 0, 0, 0, 3, 0, 0, 0, 0]}, {"name": "Pine City", "in": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "out": [0, 0, 0, 0, 0, 0, 0, 0, 1, 0]}, {"name": "Princeton", "in": [0, 0, 1, 0, 0, 0, 0, 0, 0, 0], "out": [0, 0, 0, 0, 0, 0, 0, 0, 0, 3]}, {"name": "Prior Lake-Savage", "in": [5, 3, 3, 7, 7, 9, 8, 4, 3, 3], "out": [2, 1, 1, 1, 4, 4, 2, 7, 3, 3]}, {"name": "Richfield", "in": [3, 0, 0, 0, 2, 2, 1, 2, 0, 1], "out": [0, 2, 1, 1, 0, 1, 0, 0, 0, 1]}, {"name": "Robbinsdale", "in": [0, 2, 3, 4, 1, 1, 3, 1, 0, 3], "out": [1, 0, 1, 3, 2, 2, 2, 0, 0, 0]}, {"name": "Rochester", "in": [0, 0, 1, 0, 0, 0, 0, 0, 0, 0], "out": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"name": "Rockford", "in": [0, 0, 0, 1, 0, 0, 0, 1, 0, 0], "out": [0, 0, 0, 0, 0, 0, 0, 1, 0, 0]}, {"name": "Rosemount-Apple Valley-Eagan", "in": [3, 2, 1, 0, 2, 2, 0, 1, 1, 3], "out": [2, 2, 1, 2, 0, 0, 2, 2, 2, 1]}, {"name": "Sartell-St. Stephen", "in": [0, 0, 0, 0, 0, 0, 0, 1, 0, 0], "out": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"name": "Sauk Centre", "in": [0, 1, 0, 0, 0, 0, 0, 0, 0, 0], "out": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"name": "Shakopee", "in": [47, 48, 59, 79, 80, 70, 77, 80, 76, 65], "out": [16, 23, 23, 19, 23, 28, 28, 39, 28, 31]}, {"name": "Sibley East", "in": [4, 4, 7, 6, 7, 2, 3, 2, 0, 0], "out": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"name": "South Washington County", "in": [0, 0, 0, 0, 0, 0, 0, 0, 0, 1], "out": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"name": "Spring Lake Park", "in": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "out": [0, 0, 0, 3, 0, 0, 0, 0, 0, 0]}, {"name": "St. Clair", "in": [0, 1, 1, 0, 0, 0, 0, 0, 0, 0], "out": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"name": "St. Cloud", "in": [0, 0, 0, 0, 0, 0, 1, 2, 1, 1], "out": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"name": "St. Louis Park", "in": [0, 3, 3, 0, 0, 0, 3, 1, 2, 2], "out": [2, 0, 2, 2, 3, 2, 2, 1, 1, 1]}, {"name": "St. Michael-Albertville", "in": [1, 3, 1, 3, 1, 1, 0, 0, 0, 0], "out": [0, 0, 1, 0, 0, 0, 0, 0, 1, 1]}, {"name": "St. Paul", "in": [0, 0, 1, 5, 3, 2, 0, 2, 1, 1], "out": [1, 0, 1, 0, 0, 0, 0, 3, 2, 1]}, {"name": "Stillwater", "in": [0, 0, 0, 1, 0, 0, 0, 0, 0, 0], "out": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]}, {"name": "Tri-City United", "in": [0, 1, 1, 1, 0, 0, 0, 0, 0, 0], "out": [0, 0, 0, 1, 2, 2, 2, 1, 1, 1]}, {"name": "Wabasha-Kellogg", "in": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "out": [0, 0, 0, 0, 2, 4, 3, 3, 0, 3]}, {"name": "Waconia", "in": [48, 71, 74, 88, 101, 109, 100, 100, 111, 111], "out": [29, 36, 36, 40, 41, 52, 61, 75, 65, 64]}, {"name": "Watertown-Mayer", "in": [1, 5, 6, 7, 8, 8, 6, 6, 4, 9], "out": [1, 2, 0, 0, 0, 0, 0, 0, 0, 0]}, {"name": "Wayzata", "in": [3, 2, 2, 2, 1, 3, 1, 1, 2, 0], "out": [0, 0, 0, 0, 0, 0, 0, 1, 0, 0]}, {"name": "Westonka", "in": [7, 9, 14, 10, 14, 15, 9, 10, 8, 12], "out": [6, 7, 7, 2, 6, 5, 6, 4, 3, 5]}, {"name": "White Bear Lake", "in": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "out": [0, 0, 0, 0, 0, 2, 0, 0, 0, 0]}, {"name": "Willmar", "in": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "out": [0, 1, 0, 0, 0, 0, 0, 0, 0, 0]}, {"name": "Worthington", "in": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], "out": [0, 9, 7, 8, 0, 13, 0, 8, 4, 1]}]};
+const sum = a => a.reduce((x, y) => x + y, 0);
+const ds = D.districts.map((d, id) => {
+  const net = d.in.map((v, i) => v - d.out[i]);
+  return { ...d, id, net, totIn: sum(d.in), totOut: sum(d.out), totNet: sum(net) };
+});
+const fmt = n => Number(n).toLocaleString('en-US');
+const signed = n => (n > 0 ? '+' : '') + fmt(n);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $ = s => document.querySelector(s);
+const valuesFor = (d, mode) => (mode === 'net' ? d.net : mode === 'in' ? d.in : d.out);
+
+/* ---------- Matrix ---------- */
+function renderMatrix() {
+  const mode = $('#mode').value;
+  const all = ds.flatMap(d => valuesFor(d, mode));
+  const maxAbs = Math.max(1, ...all.map(Math.abs));
+  const cell = (v, colorize = true) => {
+    if (v === 0) return '<td class="num muted">&ndash;</td>';
+    const label = mode === 'net' ? signed(v) : fmt(v);
+    let style = '';
+    if (colorize) {
+      const a = (0.12 + 0.6 * Math.min(1, Math.sqrt(Math.abs(v) / maxAbs))).toFixed(2);
+      const rgb = mode === 'in' ? '37,99,235' : mode === 'out' ? '234,88,12' : (v > 0 ? '21,128,61' : '220,38,38');
+      style = ` style="background:rgba(${rgb},${a})"`;
+    }
+    return `<td class="num"${style}>${label}</td>`;
+  };
+  let h = '<thead><tr><th class="name">District</th>' +
+    D.years.map(y => `<th class="num">${y}</th>`).join('') +
+    '</tr></thead><tbody>';
+  const last = D.years.length - 1;
+  const ordered = [...ds].sort((a, b) =>
+    Math.abs(b.net[last]) - Math.abs(a.net[last]) || a.name.localeCompare(b.name));
+  ordered.forEach(d => {
+    const v = valuesFor(d, mode);
+    h += `<tr><th class="name"><button class="link" data-id="${d.id}">${esc(d.name)}</button></th>` +
+      v.map(x => cell(x)).join('') + '</tr>';
+  });
+  const totals = D.years.map((_, i) => ds.reduce((s, d) => s + valuesFor(d, mode)[i], 0));
+  const fmtT = t => (mode === 'net' ? signed(t) : fmt(t));
+  h += '<tr class="total"><th class="name">All districts</th>' +
+    totals.map(t => `<td class="num">${fmtT(t)}</td>`).join('') + '</tr></tbody>';
+  $('#matrix').innerHTML = h;
+}
+
+/* ---------- Detail ---------- */
+function barChart(d) {
+  const W = 760, H = 300, L = 52, R = 12, T = 14, B = 34;
+  const pw = W - L - R, ph = H - T - B;
+  const lo = Math.min(0, ...d.net);
+  const hi = Math.max(1, ...d.in, ...d.out, ...d.net);
+  const y = v => T + ph * (hi - v) / (hi - lo);
+  const n = D.years.length, gw = pw / n, bw = Math.min(16, gw * 0.32);
+  const pts = d.net.map((v, i) => `${(L + i * gw + gw / 2).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="IN and OUT by year for ${esc(d.name)}">`;
+  [hi, Math.round((hi + lo) / 2), lo].forEach(t => {
+    s += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}"/>`;
+    s += `<text class="ax" x="${L - 6}" y="${y(t) + 4}" text-anchor="end">${fmt(t)}</text>`;
+  });
+  s += `<line class="zero" x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}"/>`;
+  s += `<polyline class="line" points="${pts}"/>`;
+  D.years.forEach((yr, i) => {
+    const gx = L + i * gw + gw / 2;
+    const yi = d.in[i], yo = d.out[i], yn = d.net[i];
+    s += `<rect class="bin" x="${(gx - bw - 1).toFixed(1)}" y="${Math.min(y(yi), y(0)).toFixed(1)}" width="${bw}" height="${Math.abs(y(yi) - y(0)).toFixed(1)}"><title>${yr} IN: ${fmt(yi)}</title></rect>`;
+    s += `<rect class="bout" x="${(gx + 1).toFixed(1)}" y="${Math.min(y(yo), y(0)).toFixed(1)}" width="${bw}" height="${Math.abs(y(yo) - y(0)).toFixed(1)}"><title>${yr} OUT: ${fmt(yo)}</title></rect>`;
+    s += `<circle class="dot" cx="${gx.toFixed(1)}" cy="${y(yn).toFixed(1)}" r="4"><title>${yr} net: ${signed(yn)}</title></circle>`;
+    s += `<text class="ax" x="${gx.toFixed(1)}" y="${H - 12}" text-anchor="middle">${yr}</text>`;
+  });
+  return s + '</svg>';
+}
+
+function renderDetail() {
+  const d = ds[+$('#pick').value];
+  const last = D.years.length - 1;
+  $('#detailTitle').textContent = d.name;
+  $('#stats').innerHTML = [
+    ['IN, all years', fmt(d.totIn)],
+    ['OUT, all years', fmt(d.totOut)],
+    ['Net, all years', signed(d.totNet)],
+    [`Net, ${D.years[last]}`, signed(d.net[last])]
+  ].map(([k, v]) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+  $('#chart').innerHTML = barChart(d);
+  const cls = v => (v > 0 ? 'pos' : v < 0 ? 'neg' : '');
+  $('#dtable').innerHTML =
+    '<thead><tr><th>School year</th><th class="num">IN</th><th class="num">OUT</th><th class="num">Net</th></tr></thead><tbody>' +
+    D.years.map((y, i) => `<tr><td>${y}</td><td class="num">${fmt(d.in[i])}</td><td class="num">${fmt(d.out[i])}</td><td class="num ${cls(d.net[i])}">${signed(d.net[i])}</td></tr>`).join('') +
+    `</tbody>`;
+}
+
+/* ---------- Year snapshot ---------- */
+function renderSnap() {
+  const i = +$('#year').value;
+  const rows = ds.map(d => ({ name: d.name, in: d.in[i], out: d.out[i], net: d.net[i] }))
+    .filter(r => r.in + r.out > 0)
+    .sort((a, b) => b.net - a.net || a.name.localeCompare(b.name));
+  const m = Math.max(1, ...rows.map(r => Math.abs(r.net)));
+  $('#snapTitle').textContent = `Net by district, ${D.years[i]}`;
+  $('#snap').innerHTML = rows.length ? rows.map(r => {
+    const w = Math.abs(r.net) / m * 50;
+    const left = r.net < 0 ? 50 - w : 50;
+    const c = r.net > 0 ? 'pos' : r.net < 0 ? 'neg' : 'muted';
+    return `<div class="srow"><div class="slabel" title="${esc(r.name)}">${esc(r.name)}</div>` +
+      `<div class="strack"><span class="sbar ${r.net < 0 ? 'neg' : 'pos'}" style="left:${left}%;width:${w}%"></span></div>` +
+      `<div class="sval ${c}">${signed(r.net)}<small>${fmt(r.in)} in &middot; ${fmt(r.out)} out</small></div></div>`;
+  }).join('') : '<p class="muted">No flows reported for this year.</p>';
+}
+
+/* ---------- Wiring ---------- */
+function init() {
+  $('#mode').addEventListener('change', renderMatrix);
+  $('#matrix').addEventListener('click', e => {
+    const btn = e.target.closest('button.link');
+    if (!btn) return;
+    $('#pick').value = btn.dataset.id;
+    renderDetail();
+    $('#detailTitle').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  $('#pick').innerHTML = ds.map(d => `<option value="${d.id}">${esc(d.name)}</option>`).join('');
+  $('#pick').value = ds.reduce((best, d) => (d.totIn + d.totOut > ds[best].totIn + ds[best].totOut ? d.id : best), 0);
+  $('#pick').addEventListener('change', renderDetail);
+  $('#year').innerHTML = D.years.map((y, i) => `<option value="${i}">${y}</option>`).join('');
+  $('#year').value = D.years.length - 1;
+  $('#year').addEventListener('change', renderSnap);
+  renderMatrix();
+  renderDetail();
+  renderSnap();
+}
+init();
+</script>
+</body>
+</html>

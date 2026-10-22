@@ -75,7 +75,6 @@ th{color:var(--muted);font-weight:500;cursor:pointer;user-select:none}
       Each point is one district. Points appear only when both subjects have data for the selected grade and year.
       In rank mode, rank is calculated among the selected districts separately for each subject, so ranks change with the selection.
       In change mode, each value is the district's percent proficient minus its 2019 value, in percentage points.
-      The correlation (r) measures how closely the two subjects move together across the plotted districts. It shows association only, not cause.
       There was no MCA testing in Rochester Public School District in 2023 due to a cyberattack.
       In 2026, the MCA-IV Reading Test was introduced, and in 2025, the MCA-IV Science Test was introduced. Be cautious with comparisons to previous years.
     </div>
@@ -140,14 +139,6 @@ function metricLabel(mode){
 function axisLabel(s,g,y,mode){
   return `${DATASETS[s].label}, ${GRADE_NAMES[g]}, ${y}: ${metricLabel(mode)}`;
 }
-function pearson(pts){
-  const n = pts.length; if(n<3) return null;
-  const mx = pts.reduce((a,p)=>a+p.x,0)/n, my = pts.reduce((a,p)=>a+p.y,0)/n;
-  let cov=0, sx=0, sy=0;
-  pts.forEach(p=>{ cov+=(p.x-mx)*(p.y-my); sx+=(p.x-mx)**2; sy+=(p.y-my)**2; });
-  if(sx===0 || sy===0) return null;
-  return cov/Math.sqrt(sx*sy);
-}
 
 function fillSubjects(sel, def){
   sel.innerHTML = Object.keys(DATASETS).map(s=>`<option value="${s}">${DATASETS[s].label}</option>`).join("");
@@ -211,12 +202,10 @@ function update(){
 }
 
 function renderKpis(pts, rows, mode, xs, ys, xg, yg, y){
-  const r = pearson(pts);
   const ec = pts.find(p=>p.d===ECCS);
   const withData = rows.length;
   $("kpis").innerHTML = `
     <div class="kpi"><div class="l">Districts plotted</div><div class="v">${pts.length}</div><div class="l">of ${withData} selected, with data in both subjects</div></div>
-    <div class="kpi"><div class="l">Correlation (r)</div><div class="v">${r===null?"—":r.toFixed(2)}</div><div class="l">association across plotted districts</div></div>
     <div class="kpi"><div class="l">Eastern Carver County</div><div class="v">${ec?fmt(ec.x,mode)+" / "+fmt(ec.y,mode):"—"}</div><div class="l">${DATASETS[xs].label} / ${DATASETS[ys].label}</div></div>`;
 }
 

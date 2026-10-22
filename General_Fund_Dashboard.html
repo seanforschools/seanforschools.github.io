@@ -349,7 +349,7 @@ function render() {
   } else {
     const idx = state.year;
     const all = g.series.map((s, i) => ({ name: s.name, value: s.values[idx], color: PALETTE[i % PALETTE.length] }));
-    const items = all.filter(x => x.value > 0);
+    const items = all.filter(x => x.value > 0).sort((a, b) => b.value - a.value);
     const excluded = all.filter(x => x.value <= 0).map(x => x.name);
     const total = items.reduce((a, x) => a + x.value, 0);
 

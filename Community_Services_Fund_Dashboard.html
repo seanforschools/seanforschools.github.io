@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Community Services Fund Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#F4F6F5;
+  --surface:#FFFFFF;
+  --ink:#1B2A33;
+  --muted:#5D6B74;
+  --rule:#D5DCD9;
+  --accent:#1F6F78;
+  --focus:#C98A2B;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#131B20;
+    --surface:#1A252C;
+    --ink:#E6EDEB;
+    --muted:#9AAAB2;
+    --rule:#2D3B44;
+    --accent:#64B6BE;
+    --focus:#E0A94A;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:15px;
+  line-height:1.5;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:28px 20px 48px}
+a.back{color:var(--accent);text-decoration:none;font-size:14px;display:inline-block;margin-bottom:12px}
+a.back:hover{text-decoration:underline}
+header{border-bottom:1px solid var(--rule);padding-bottom:16px;margin-bottom:20px}
+h1{
+  font-family:Georgia,"Times New Roman",serif;
+  font-weight:600;
+  font-size:30px;
+  letter-spacing:-0.01em;
+  margin:0 0 4px;
+}
+header p{margin:0;color:var(--muted);font-size:14px}
+
+.groupbar{
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px;
+  margin:0 0 20px;
+}
+.groupbar .groupbar-label{font-size:13px;color:var(--muted);margin-right:6px}
+.pill{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:8px 14px;border:1px solid var(--rule);border-radius:999px;
+  background:var(--surface);cursor:pointer;font-size:14px;
+}
+.pill:hover{border-color:var(--muted)}
+.pill:has(input:checked){border-color:var(--accent);color:var(--accent);font-weight:600}
+.pill input{accent-color:var(--accent);margin:0;width:15px;height:15px}
+
+.layout{display:grid;grid-template-columns:250px 1fr;gap:24px;align-items:start}
+@media (max-width:800px){.layout{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:18px}
+fieldset{border:0;margin:0 0 22px;padding:0;min-width:0}
+fieldset:last-child{margin-bottom:0}
+legend{font-size:13px;color:var(--muted);padding:0;margin-bottom:8px}
+.opt{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 10px;border-radius:4px;cursor:pointer;
+}
+.opt:hover{background:var(--bg)}
+.opt input{accent-color:var(--accent);width:16px;height:16px;margin:0}
+.opt span{font-size:15px}
+input:focus-visible,select:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+select{
+  width:100%;padding:9px 10px;font:inherit;
+  background:var(--bg);color:var(--ink);
+  border:1px solid var(--rule);border-radius:4px;
+}
+.hidden{display:none !important}
+.subreport{margin-top:22px;border-top:1px solid var(--rule);padding-top:18px}
+.sub-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.subreport h3{font-family:Georgia,"Times New Roman",serif;font-weight:600;font-size:18px;margin:0}
+.sub-head select{padding:6px 8px;font:inherit;background:var(--bg);color:var(--ink);border:1px solid var(--rule);border-radius:4px}
+.sub-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.sub-card{border:1px solid var(--rule);border-radius:6px;padding:12px 14px;background:var(--bg)}
+.sub-card h4{margin:0 0 2px;font-size:14px}
+.sub-card .sub-total{font-size:13px;color:var(--muted);margin:0 0 8px;font-variant-numeric:tabular-nums}
+.sub-card ol{margin:0;padding-left:0;list-style:none}
+.sub-card li{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:4px 0;border-top:1px solid var(--rule);font-variant-numeric:tabular-nums}
+.sub-card li:first-child{border-top:none}
+.sub-card .code{color:var(--muted)}
+.sub-card .pct{color:var(--muted);margin-left:6px}
+h2{font-family:Georgia,"Times New Roman",serif;font-weight:600;font-size:22px;margin:0 0 4px}
+.total{font-variant-numeric:tabular-nums;font-size:15px;color:var(--muted);margin:0 0 14px}
+.total strong{color:var(--ink);font-weight:600}
+.chartbox{position:relative;height:380px}
+.note{font-size:13px;color:var(--muted);margin:12px 0 0}
+table{width:100%;border-collapse:collapse;margin-top:26px;font-variant-numeric:tabular-nums;font-size:14px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--rule);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal}
+th{font-weight:600;color:var(--muted);font-size:13px}
+tbody tr:hover{background:var(--bg)}
+tr.total-row td{font-weight:600;border-bottom:none;border-top:2px solid var(--rule)}
+.swatch{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:8px;vertical-align:middle}
+.table-wrap{overflow-x:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">&larr; Back to home</a>
+  <header>
+    <h1>Community Services Fund Dashboard</h1>
+    <p>Actual results for 2022-23 through 2024-25, revised budget for 2025-26, and budget for 2026-27.</p>
+  </header>
+
+  <div class="groupbar" id="groupFieldset" role="radiogroup" aria-label="Grouping">
+    <span class="groupbar-label">Grouping</span>
+    <label class="pill"><input type="radio" name="group" value="revenue" checked><span>Revenue by source</span></label>
+    <label class="pill"><input type="radio" name="group" value="object"><span>Expenditure by object</span></label>
+    <label class="pill"><input type="radio" name="group" value="netprog"><span>Revenue and expenditure by program</span></label>
+  </div>
+
+  <div class="layout">
+    <aside class="panel" aria-label="Dashboard controls">
+      <fieldset>
+        <legend>View</legend>
+        <label class="opt"><input type="radio" name="view" value="trend" checked><span>Trend, 2022-23 to 2026-27</span></label>
+        <label class="opt"><input type="radio" name="view" value="pie"><span>Share of one year</span></label>
+      </fieldset>
+
+      <fieldset id="unitFieldset">
+        <legend>Amounts</legend>
+        <label class="opt"><input type="radio" name="unit" value="dollars" checked><span>Dollars</span></label>
+        <label class="opt"><input type="radio" name="unit" value="percent"><span>Percent of total</span></label>
+      </fieldset>
+
+      <fieldset id="yearFieldset" class="hidden">
+        <legend><label for="yearSelect">Year</label></legend>
+        <select id="yearSelect"></select>
+      </fieldset>
+    </aside>
+
+    <main class="panel" aria-live="polite">
+      <h2 id="title"></h2>
+      <p class="total" id="totalLine"></p>
+      <div class="chartbox" id="chartBox"><canvas id="chart" role="img" aria-label="Chart of community services fund dashboard data"></canvas></div>
+      <p class="note" id="note"></p>
+
+      <section id="subreport" class="subreport hidden" aria-label="Top line items by category">
+        <div class="sub-head">
+          <h3>Top 5 line items by category</h3>
+          <label>Year <select id="subYear"></select></label>
+        </div>
+        <div class="sub-grid" id="subGrid"></div>
+      </section>
+
+      <section id="progSubreport" class="subreport hidden" aria-label="Breakdown by program">
+        <div class="sub-head">
+          <h3>Breakdown by program</h3>
+          <label>Year <select id="progYear"></select></label>
+        </div>
+        <div class="sub-grid" id="progGrid"></div>
+      </section>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr id="thead"></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+</div>
+
+<script>
+const YEARS = ["2022-23 Actual", "2023-24 Actual", "2024-25 Actual", "2025-26 Revised", "2026-27 Budget"];
+
+const GROUPS = {"revenue": {"title": "Revenue by source", "series": [{"name": "Property Taxes", "values": [1045617, 1142559, 1077347, 1163250, 1143931]}, {"name": "State Sources", "values": [1762025, 1816379, 1796958, 1958179, 2090000]}, {"name": "Federal Sources", "values": [202589, 59924, 0, 0, 0]}, {"name": "Tuition & Fees", "values": [5835987, 6248967, 6645598, 6512963, 6523035]}, {"name": "Other", "values": [976011, 1234779, 1325723, 1006045, 1215900]}]}, "object": {"title": "Expenditure by object", "series": [{"name": "Salaries", "values": [5563231, 5803019, 6130332, 6390186, 6228285]}, {"name": "Employee Benefits", "values": [1264090, 1314696, 1384090, 1526684, 1790491]}, {"name": "Purchased Services", "values": [1620843, 1726137, 2070468, 2005137, 2313615]}, {"name": "Supplies & Materials", "values": [478956, 507155, 565362, 575262, 689753]}, {"name": "Capital Expenditures", "values": [26494, 23841, 43705, 34600, 43400]}, {"name": "Other Expenditures", "values": [12112, 24804, 60255, 53493, 56095]}]}, "netprog": {"title": "Revenue and expenditure by program", "series": []}};
+
+const OBJECT_DETAIL = [{"c": 110, "d": "Administration/Supervision", "k": "Salaries", "v": [461773, 506355, 533575, 615969, 609524]}, {"c": 120, "d": "Early Childhood Administration/Supervision", "k": "Salaries", "v": [66022, 72383, 77468, 52254, 134532]}, {"c": 140, "d": "Licensed Classroom Teacher", "k": "Salaries", "v": [996339, 1113151, 1172955, 1063206, 1156817]}, {"c": 141, "d": "Non-Licensed Classroom Personnel", "k": "Salaries", "v": [1996867, 2088027, 2173061, 2171977, 2124381]}, {"c": 145, "d": "Substitute Teacher Salaries", "k": "Salaries", "v": [20256, 21563, 25320, 0, 9000]}, {"c": 146, "d": "Substitute Non-Licensed", "k": "Salaries", "v": [4224, 6622, 4794, 0, 1000]}, {"c": 154, "d": "School Nurse", "k": "Salaries", "v": [26351, 36563, 73546, 107121, 6504]}, {"c": 155, "d": "Licensed Nursing Services", "k": "Salaries", "v": [161457, 145884, 107677, 122775, 26016]}, {"c": 156, "d": "School Social Worker", "k": "Salaries", "v": [0, 36551, 41748, 41347, 44302]}, {"c": 165, "d": "School Counselor", "k": "Salaries", "v": [303350, 176869, 143688, 227584, 149974]}, {"c": 170, "d": "Non-Instructional Support", "k": "Salaries", "v": [1075502, 1116269, 1291822, 1540401, 1501035]}, {"c": 185, "d": "Other Licensed Salary Payments", "k": "Salaries", "v": [197373, 219361, 238548, 202803, 205000]}, {"c": 186, "d": "Other Salaries - Non-Licensed", "k": "Salaries", "v": [237573, 253031, 242781, 246000, 262000]}, {"c": 195, "d": "Salary Chargeback", "k": "Salaries", "v": [-3313, -3191, -4264, -3300, -1800]}, {"c": 199, "d": "Cash In Lieu Of Benefits", "k": "Salaries", "v": [19457, 13581, 7613, 2049, 0]}, {"c": 210, "d": "FICA (Social Security & Medicare)", "k": "Employee Benefits", "v": [412200, 422727, 451383, 457993, 475431]}, {"c": 214, "d": "Public Employees Retirement (PERA)", "k": "Employee Benefits", "v": [257339, 274898, 286123, 339454, 319512]}, {"c": 218, "d": "Teacher Retirement (TRA)", "k": "Employee Benefits", "v": [153049, 142387, 165240, 138198, 191758]}, {"c": 219, "d": "MN Paid Leave", "k": "Employee Benefits", "v": [0, 0, 0, 13410, 27358]}, {"c": 220, "d": "Health Insurance", "k": "Employee Benefits", "v": [345424, 375762, 386931, 481189, 656031]}, {"c": 230, "d": "Life Insurance", "k": "Employee Benefits", "v": [4080, 3933, 3469, 2125, 2243]}, {"c": 235, "d": "Dental Insurance", "k": "Employee Benefits", "v": [13995, 14982, 12696, 6429, 1049]}, {"c": 240, "d": "Long-Term Disability", "k": "Employee Benefits", "v": [4704, 4814, 5066, 4798, 6471]}, {"c": 250, "d": "403(B) or 457 Match", "k": "Employee Benefits", "v": [29883, 33547, 40492, 59954, 84200]}, {"c": 251, "d": "Tax-Advantage Employer Health Arrangements", "k": "Employee Benefits", "v": [16475, 13356, 5726, 3657, 0]}, {"c": 270, "d": "Workers' Compensation", "k": "Employee Benefits", "v": [19108, 19223, 20442, 19477, 26438]}, {"c": 280, "d": "Unemployment Compensation", "k": "Employee Benefits", "v": [8125, 9578, 7204, 0, 0]}, {"c": 295, "d": "Benefit Chargeback", "k": "Employee Benefits", "v": [-292, -511, -682, 0, 0]}, {"c": 303, "d": "Federal Subawards and Subcontracts up to $25k", "k": "Purchased Services", "v": [124465, 6400, 0, 0, 0]}, {"c": 305, "d": "Contracted Services", "k": "Purchased Services", "v": [797196, 974121, 1130687, 1050338, 1293825]}, {"c": 320, "d": "Telephone", "k": "Purchased Services", "v": [18474, 18165, 20235, 18350, 22250]}, {"c": 329, "d": "Postage", "k": "Purchased Services", "v": [8936, 11347, 13815, 13500, 16300]}, {"c": 335, "d": "Short-Term Leases or Rentals", "k": "Purchased Services", "v": [2730, 3629, 8404, 9800, 8500]}, {"c": 350, "d": "Repairs & Maintenance", "k": "Purchased Services", "v": [0, 756, 3850, 500, 0]}, {"c": 360, "d": "Transportation Contracts", "k": "Purchased Services", "v": [4771, 357, 6600, 0, 4000]}, {"c": 365, "d": "Interdepartmental Transportation", "k": "Purchased Services", "v": [74068, 107175, 132891, 96600, 142300]}, {"c": 366, "d": "Travel, Conventions and Conferences", "k": "Purchased Services", "v": [19571, 14599, 23971, 25600, 26000]}, {"c": 369, "d": "Entry Fees/Student Travel", "k": "Purchased Services", "v": [119742, 141732, 162360, 182569, 189760]}, {"c": 380, "d": "Short-Term Leases for Computer or other Technology", "k": "Purchased Services", "v": [2732, 0, 0, 0, 0]}, {"c": 398, "d": "Interdepartmental Services Chargeback", "k": "Purchased Services", "v": [448158, 447856, 567655, 607880, 610680]}, {"c": 401, "d": "General Supply", "k": "Supplies & Materials", "v": [41413, 40355, 38245, 40280, 54700]}, {"c": 405, "d": "Software Non-Instructional", "k": "Supplies & Materials", "v": [2617, 1030, 4711, 9820, 5686]}, {"c": 430, "d": "Instructional Supplies", "k": "Supplies & Materials", "v": [137539, 136304, 166773, 161300, 160500]}, {"c": 455, "d": "Technology Supplies Non-Instructional", "k": "Supplies & Materials", "v": [0, 16314, 0, 0, 0]}, {"c": 456, "d": "Technology Supplies Instructional", "k": "Supplies & Materials", "v": [0, 0, 468, 500, 1500]}, {"c": 460, "d": "Textbooks and Workbooks", "k": "Supplies & Materials", "v": [168934, 200824, 186948, 270062, 335767]}, {"c": 465, "d": "Technology Devices Non-Instructional", "k": "Supplies & Materials", "v": [2109, 30392, 75741, 11500, 50000]}, {"c": 466, "d": "Technology Devices Instructional", "k": "Supplies & Materials", "v": [0, 2442, 0, 0, 0]}, {"c": 490, "d": "Food", "k": "Supplies & Materials", "v": [126344, 79494, 92476, 81800, 81600]}, {"c": 530, "d": "Equipment", "k": "Capital Expenditures", "v": [12126, 4034, 21600, 15800, 19300]}, {"c": 555, "d": "Capitalized Technology Equipment Non-Instructional", "k": "Capital Expenditures", "v": [14368, 19807, 22105, 18800, 24100]}, {"c": 820, "d": "Dues, Memberships, Licenses", "k": "Other Expenditures", "v": [3307, 4807, 5570, 3400, 6095]}, {"c": 891, "d": "TRA and PERA Special Pension Expense", "k": "Other Expenditures", "v": [8805, 16821, 15698, 0, 0]}, {"c": 895, "d": "Federal Indirect Costs", "k": "Other Expenditures", "v": [0, 3176, 38987, 50093, 50000]}];
+const PROGRAM_DETAIL = [];
+const PROGRAM_ORDER = [];
+
+const PALETTE = ["#1F6F78","#C98A2B","#7A5A9E","#6E8B3D","#B5533C",
+                 "#4C6A92","#C77C98","#7C8A91","#3E8E7E","#A39036"];
+
+const pieLabels = {
+  id: "pieLabels",
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+    const ds = chart.data.datasets[0];
+    const total = ds.data.reduce((a, b) => a + b, 0);
+    chart.getDatasetMeta(0).data.forEach((arc, i) => {
+      const pct = (ds.data[i] / total) * 100;
+      if (pct < 3) return;
+      const { x, y } = arc.tooltipPosition();
+      ctx.save();
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "600 13px system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.shadowColor = "rgba(0,0,0,0.35)";
+      ctx.shadowBlur = 3;
+      ctx.fillText(Math.round(pct) + "%", x, y);
+      ctx.restore();
+    });
+  }
+};
+
+const state = { group: "revenue", view: "trend", year: 4, unit: "dollars" };
+const SUB_YEARS = YEARS;
+const SUB_CATS = ["Salaries","Employee Benefits","Purchased Services","Supplies & Materials","Capital Expenditures","Other Expenditures"];
+let subYear = 4;
+let progYear = 4;
+let chart = null;
+
+const $ = id => document.getElementById(id);
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+const fmt = n => (n < 0 ? "-" : "") + "$" + Math.abs(Math.round(n)).toLocaleString("en-US");
+const fmtM = n => (n < 0 ? "-" : "") + "$" + (Math.abs(n) / 1e6).toFixed(Math.abs(n) < 1e7 ? 1 : 0) + "M";
+
+function yearTotal(g, idx) {
+  return g.series.reduce((sum, s) => sum + s.values[idx], 0);
+}
+
+function sortedByTotal(g) {
+  const sum = arr => arr.reduce((a, b) => a + b, 0);
+  return g.series
+    .map((s, i) => ({ s, i }))
+    .sort((a, b) => sum(b.s.values) - sum(a.s.values));
+}
+
+function buildYearOptions() {
+  const sel = $("yearSelect");
+  sel.innerHTML = YEARS.map((y, i) => `<option value="${i}">${y}</option>`).join("");
+  sel.value = String(state.year);
+}
+
+function renderTable(g) {
+  $("thead").innerHTML = "<th>Line item</th>" + YEARS.map(y => `<th>${y}</th>`).join("");
+  const rows = g.series.map((s, i) =>
+    `<tr><td><span class="swatch" style="background:${PALETTE[i % PALETTE.length]}"></span>${s.name}</td>` +
+    s.values.map(v => `<td>${fmt(v)}</td>`).join("") + `</tr>`
+  ).join("");
+  const totals = YEARS.map((_, j) => `<td>${fmt(yearTotal(g, j))}</td>`).join("");
+  $("tbody").innerHTML = rows + `<tr class="total-row"><td>Total</td>${totals}</tr>`;
+}
+
+const NET_PROGRAMS = [{"name": "505 General Comm Ed", "rev": [437256, 544514, 626654, 374175, 481936], "exp": [373003, 387838, 422318, 521456, 469744]}, {"name": "511 Hooked on Books", "rev": [0, 2300, 2765, 6000, 0], "exp": [0, 1218, 3615, 5800, 0]}, {"name": "512 Facilities", "rev": [867396, 1020721, 1064446, 989000, 1060000], "exp": [680269, 735420, 938733, 973142, 1013070]}, {"name": "560 Adult Enrichment", "rev": [64781, 61660, 52995, 65000, 62000], "exp": [64509, 62168, 56665, 59946, 56757]}, {"name": "563 Elementary Enrichment", "rev": [748700, 685525, 710861, 700000, 730000], "exp": [683806, 676532, 715087, 684878, 719550]}, {"name": "570 Child Care", "rev": [2998674, 3253677, 3428772, 3161290, 3388912], "exp": [2595672, 2719165, 2913926, 2992420, 3067703]}, {"name": "571 Half Day Preschool", "rev": [552261, 497099, 1028894, 1160000, 1016835], "exp": [457594, 528683, 1142283, 1123470, 1424524]}, {"name": "575 All Day Preschool", "rev": [1167424, 1375546, 943293, 1010520, 910000], "exp": [1204114, 1273115, 864194, 964585, 946088]}, {"name": "580 Early Childhood Family Education", "rev": [891474, 865909, 862719, 861254, 874055], "exp": [853637, 919123, 947556, 855406, 860513]}, {"name": "582 Pathways", "rev": [51878, 45555, 42898, 51195, 43000], "exp": [44507, 56072, 54215, 51100, 64379]}, {"name": "583 Preschool Screening", "rev": [32345, 35715, 60049, 39897, 30000], "exp": [57785, 68434, 91015, 75090, 83535]}, {"name": "584 School Readiness Plus", "rev": [74523, 59924, 0, 0, 0], "exp": [74523, 59924, 0, 0, 0]}, {"name": "585 Middle School Enrichment", "rev": [297926, 305462, 339109, 306930, 317000], "exp": [276683, 307396, 357048, 303250, 311749]}, {"name": "586 High School Enrichment", "rev": [430508, 426666, 422638, 442930, 456000], "exp": [434741, 414812, 432231, 452374, 454410]}, {"name": "592 School Readiness", "rev": [325343, 319676, 311947, 311922, 315000], "exp": [288881, 367526, 300674, 301935, 366950]}, {"name": "593 Intervention Services", "rev": [97620, 62301, 63891, 70275, 68500], "exp": [54790, 41011, 110885, 122939, 118206]}, {"name": "595 Adult Handicapped", "rev": [37921, 114957, 90578, 88188, 119628], "exp": [66548, 75495, 85033, 83023, 124357]}, {"name": "720 Non Public Schools", "rev": [746199, 825419, 793115, 1001861, 1100000], "exp": [754663, 705733, 818734, 1014548, 1040104]}];
+
+
+function renderNet() {
+  ["subreport", "progSubreport"].forEach(id => $(id).classList.add("hidden"));
+  $("yearFieldset").classList.remove("hidden");
+  $("unitFieldset").classList.add("hidden");
+  $("title").textContent = `Revenue, expenditure, and difference by program, ${YEARS[state.year]}`;
+
+  const idx = state.year;
+  const rows = NET_PROGRAMS.map(p => ({ name: p.name, rev: p.rev[idx], exp: p.exp[idx], diff: p.rev[idx] - p.exp[idx] })).sort((a, b) => b.rev - a.rev);
+  const sum = k => rows.reduce((a, r) => a + r[k], 0);
+  const totRev = sum("rev"), totExp = sum("exp"), totDiff = sum("diff");
+
+  $("totalLine").innerHTML =
+    `Revenue <strong>${fmt(totRev)}</strong>, expenditure <strong>${fmt(totExp)}</strong>, ` +
+    `difference <strong>${fmt(totDiff)}</strong>`;
+  $("note").textContent = "Difference is revenue less expenditure. A negative difference means expenditure was more than revenue.";
+
+  $("chartBox").style.height = Math.max(380, rows.length * 34 + 80) + "px";
+  if (chart) { chart.destroy(); chart = null; }
+  const textColor = css("--ink");
+  const gridColor = css("--rule");
+  Chart.defaults.color = css("--muted");
+  Chart.defaults.font.family = "system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
+  chart = new Chart($("chart"), {
+    type: "bar",
+    data: {
+      labels: rows.map(r => r.name),
+      datasets: [
+        { label: "Revenue", data: rows.map(r => r.rev), backgroundColor: css("--accent"), borderWidth: 0 },
+        { label: "Expenditure", data: rows.map(r => r.exp), backgroundColor: css("--focus"), borderWidth: 0 }
+      ]
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { grid: { color: gridColor }, ticks: { callback: v => fmtM(v) } },
+        y: { grid: { color: gridColor }, ticks: { autoSkip: false } }
+      },
+      plugins: {
+        legend: { position: "bottom", labels: { color: textColor, usePointStyle: true, boxWidth: 8 } },
+        tooltip: { callbacks: { label: c => `${c.dataset.label}: ${fmt(c.parsed.x)}` } }
+      }
+    }
+  });
+
+  $("thead").innerHTML = "<th>Program</th><th>Revenue</th><th>Expenditure</th><th>Difference</th><th>Difference as % of revenue</th>";
+  const body = rows.map(r =>
+    `<tr><td>${r.name}</td><td>${fmt(r.rev)}</td><td>${fmt(r.exp)}</td><td>${fmt(r.diff)}</td>` +
+    `<td>${r.rev ? ((r.diff / r.rev) * 100).toFixed(1) + "%" : "-"}</td></tr>`
+  ).join("");
+  $("tbody").innerHTML = body +
+    `<tr class="total-row"><td>Total</td><td>${fmt(totRev)}</td><td>${fmt(totExp)}</td><td>${fmt(totDiff)}</td>` +
+    `<td>${totRev ? ((totDiff / totRev) * 100).toFixed(1) + "%" : "-"}</td></tr>`;
+}
+
+function render() {
+  if (state.group === "netprog") { renderNet(); return; }
+  $("chartBox").style.height = "";
+
+  $("groupFieldset").classList.remove("hidden");
+  $("chartBox").classList.remove("hidden");
+
+  const g = GROUPS[state.group];
+  const isPie = state.view === "pie";
+  const isPercent = !isPie && state.unit === "percent";
+
+  $("yearFieldset").classList.toggle("hidden", !isPie);
+  $("unitFieldset").classList.toggle("hidden", isPie);
+  $("title").textContent = isPie
+    ? `${g.title}, ${YEARS[state.year]}`
+    : `${g.title}, 2022-23 to 2026-27${isPercent ? " (percent of total)" : ""}`;
+
+  if (chart) { chart.destroy(); chart = null; }
+
+  const textColor = css("--ink");
+  const gridColor = css("--rule");
+  const surface = css("--surface");
+  Chart.defaults.color = css("--muted");
+  Chart.defaults.font.family = "system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
+
+  if (!isPie) {
+    $("totalLine").innerHTML = "";
+    $("note").textContent = "Values below zero are shown as negative amounts, as they appear in the budget.";
+    chart = new Chart($("chart"), {
+      type: "bar",
+      data: {
+        labels: YEARS,
+        datasets: sortedByTotal(g).map(({ s, i }) => ({
+          label: s.name,
+          data: isPercent ? s.values.map((v, j) => (v / yearTotal(g, j)) * 100) : s.values,
+          backgroundColor: PALETTE[i % PALETTE.length],
+          borderWidth: 0,
+          borderRadius: 0
+        }))
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        scales: {
+          x: { stacked: true, grid: { color: gridColor } },
+          y: {
+            stacked: true,
+            grid: { color: gridColor },
+            max: isPercent ? 100 : undefined,
+            ticks: { callback: v => isPercent ? v.toFixed(0) + "%" : fmtM(v) }
+          }
+        },
+        plugins: {
+          legend: { position: "bottom", labels: { color: textColor, usePointStyle: true, boxWidth: 8 } },
+          tooltip: {
+            callbacks: {
+              label: c => isPercent
+                ? `${c.dataset.label}: ${c.parsed.y.toFixed(1)}% (${fmt(g.series.find(s => s.name === c.dataset.label).values[c.dataIndex])})`
+                : `${c.dataset.label}: ${fmt(c.parsed.y)}`
+            }
+          }
+        }
+      }
+    });
+  } else {
+    const idx = state.year;
+    const all = g.series.map((s, i) => ({ name: s.name, value: s.values[idx], color: PALETTE[i % PALETTE.length] }));
+    const items = all.filter(x => x.value > 0).sort((a, b) => b.value - a.value);
+    const excluded = all.filter(x => x.value <= 0).map(x => x.name);
+    const total = items.reduce((a, x) => a + x.value, 0);
+
+    $("totalLine").innerHTML = `Total for ${YEARS[idx]}: <strong>${fmt(yearTotal(g, idx))}</strong>`;
+    $("note").textContent = excluded.length
+      ? `Not shown in the pie because the amount is zero or negative: ${excluded.join(", ")}.`
+      : "";
+
+    chart = new Chart($("chart"), {
+      type: "pie",
+      plugins: [pieLabels],
+      data: {
+        labels: items.map(x => x.name),
+        datasets: [{
+          data: items.map(x => x.value),
+          backgroundColor: items.map(x => x.color),
+          borderColor: surface,
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "right", labels: { color: textColor, boxWidth: 12 } },
+          tooltip: {
+            callbacks: {
+              label: c => `${c.label}: ${fmt(c.parsed)} (${((c.parsed / total) * 100).toFixed(1)}%)`
+            }
+          }
+        }
+      }
+    });
+  }
+
+  renderTable(g);
+  syncSubYears();
+  renderSubreport();
+  renderProgSubreport();
+}
+
+function syncSubYears() {
+  const isPie = state.view === "pie";
+  if (isPie && state.year >= 1) {
+    subYear = state.year;
+    progYear = state.year;
+  }
+  $("subYear").value = String(subYear);
+  $("progYear").value = String(progYear);
+  $("subYear").disabled = isPie;
+  $("progYear").disabled = isPie;
+}
+
+function buildProgYearOptions() {
+  $("progYear").innerHTML = SUB_YEARS.map((y, i) => `<option value="${i}">${y}</option>`).join("");
+  $("progYear").value = String(progYear);
+}
+
+function renderProgSubreport() {
+  const show = state.group === "program" && PROGRAM_DETAIL.length > 0;
+  $("progSubreport").classList.toggle("hidden", !show);
+  if (!show) return;
+  const idx = state.view === "pie" ? state.year : progYear;
+  if (idx < 0) {
+    $("progGrid").innerHTML = '<p class="note">Line-item detail begins in 2022-23.</p>';
+    return;
+  }
+  $("progGrid").innerHTML = PROGRAM_ORDER.map(name => {
+    const items = PROGRAM_DETAIL.filter(x => x.p === name);
+    const total = items.reduce((a, x) => a + x.v[idx], 0);
+    const lines = SUB_CATS.map(cat => {
+      const it = items.find(x => x.k === cat);
+      const amt = it ? it.v[idx] : 0;
+      const share = total ? ((amt / total) * 100).toFixed(1) : "0.0";
+      return `<li><span>${cat}</span><span>${amt === 0 ? "-" : fmt(amt)}<span class="pct">${share}%</span></span></li>`;
+    }).join("");
+    return `<div class="sub-card"><h4>${name}</h4><p class="sub-total">Total ${fmt(total)}</p><ol>${lines}</ol></div>`;
+  }).join("");
+}
+
+function buildSubYearOptions() {
+  $("subYear").innerHTML = SUB_YEARS.map((y, i) => `<option value="${i}">${y}</option>`).join("");
+  $("subYear").value = String(subYear);
+}
+
+function renderSubreport() {
+  const show = state.group === "object";
+  $("subreport").classList.toggle("hidden", !show);
+  if (!show) return;
+  const idx = state.view === "pie" ? state.year : subYear;
+  if (idx < 0) {
+    $("subGrid").innerHTML = '<p class="note">Line-item detail begins in 2022-23.</p>';
+    return;
+  }
+  $("subGrid").innerHTML = SUB_CATS.map(cat => {
+    const items = OBJECT_DETAIL.filter(x => x.k === cat);
+    const catTotal = items.reduce((a, x) => a + x.v[idx], 0);
+    const top = items.filter(x => x.v[idx] > 0).sort((a, b) => b.v[idx] - a.v[idx]).slice(0, 5);
+    const lines = top.map(x =>
+      `<li><span>${x.d} <span class="code">(${x.c})</span></span>` +
+      `<span>${fmt(x.v[idx])}<span class="pct">${catTotal ? ((x.v[idx] / catTotal) * 100).toFixed(1) : "0.0"}%</span></span></li>`
+    ).join("");
+    return `<div class="sub-card"><h4>${cat}</h4><p class="sub-total">Total ${fmt(catTotal)}</p>` +
+           `<ol>${lines || "<li>No positive line items</li>"}</ol></div>`;
+  }).join("");
+}
+
+document.querySelectorAll('input[name="group"]').forEach(el =>
+  el.addEventListener("change", e => { state.group = e.target.value; render(); }));
+document.querySelectorAll('input[name="view"]').forEach(el =>
+  el.addEventListener("change", e => { state.view = e.target.value; render(); }));
+document.querySelectorAll('input[name="unit"]').forEach(el =>
+  el.addEventListener("change", e => { state.unit = e.target.value; render(); }));
+$("yearSelect").addEventListener("change", e => { state.year = Number(e.target.value); render(); });
+$("subYear").addEventListener("change", e => { subYear = Number(e.target.value); renderSubreport(); });
+$("progYear").addEventListener("change", e => { progYear = Number(e.target.value); renderProgSubreport(); });
+
+buildYearOptions();
+buildSubYearOptions();
+buildProgYearOptions();
+render();
+</script>
+</body>
+</html>

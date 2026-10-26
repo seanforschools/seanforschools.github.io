@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enrollment Dashboard, 2022-23 to 2026-27</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#ffffff;--surface:#f5f6f8;--text:#1d2330;--muted:#6b7280;--border:#dde1e7;--accent:#2563eb;--hover:#eef2f7;color-scheme:light}
+@media (prefers-color-scheme: dark){:root{--bg:#14171f;--surface:#1d222c;--text:#e6e9ef;--muted:#9aa3b2;--border:#2e3542;--accent:#60a5fa;--hover:#262c38;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text);padding:28px 20px;line-height:1.5;font-size:14px}
+main{max-width:1000px;margin:0 auto}
+h1{font-size:24px;margin:0 0 4px}
+h2{font-size:16px;margin:0 0 12px}
+.intro{color:var(--muted);margin:0 0 20px}
+.controls{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:20px}
+.control label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+select{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 10px;min-width:160px}
+select:focus{outline:2px solid var(--accent);outline-offset:1px}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:6px;overflow:hidden}
+.seg button{font:inherit;color:var(--text);background:var(--bg);border:0;padding:6px 12px;cursor:pointer;border-right:1px solid var(--border)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--accent);color:#fff}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:20px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.kpi .label{font-size:12px;color:var(--muted)}
+.kpi .value{font-size:24px;font-weight:600;margin-top:2px}
+.kpi .sub{font-size:12px;color:var(--muted)}
+.pos{color:#059669}
+.neg{color:#dc2626}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+@media (max-width:760px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px}
+.chart-wrap{position:relative;height:300px}
+.chart-wrap.tall{height:420px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:8px}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:middle;background:var(--c)}
+.table-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:20px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--border);white-space:nowrap}
+th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
+th{color:var(--muted);font-weight:600;cursor:pointer;user-select:none;background:var(--surface);position:sticky;top:0}
+th:hover{color:var(--text)}
+th.sel,td.sel{background:var(--hover)}
+th .arrow{font-size:10px;margin-left:4px}
+tr:last-child td{border-bottom:0}
+tfoot td{font-weight:600;border-top:2px solid var(--border)}
+.tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:999px;border:1px solid var(--border);color:var(--muted)}
+.notes{font-size:13px;color:var(--muted);border-top:1px solid var(--border);padding-top:14px;margin-top:8px}
+.notes ul{padding-left:20px;margin:6px 0}
+.empty{text-align:center;color:var(--muted);padding:40px 0}
+</style>
+</head>
+<body>
+<main>
+  <h1>Enrollment Dashboard</h1>
+  <p class="intro">School enrollment by level, 2022-23 through 2026-27. Choose a year and level to update the views. Select a column header to sort the table.</p>
+
+  <div class="controls">
+    <div class="control">
+      <label for="yearSel">Snapshot year</label>
+      <select id="yearSel"></select>
+    </div>
+    <div class="control">
+      <label>Level</label>
+      <div class="seg" id="levelSeg"></div>
+    </div>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>Enrollment trend</h2>
+      <div class="chart-wrap"><canvas id="trendChart" role="img" aria-label="Line chart of enrollment by level across years"></canvas></div>
+    </div>
+    <div class="panel">
+      <h2>Enrollment by school, <span id="schoolYearLabel"></span></h2>
+      <div class="legend" id="schoolLegend"></div>
+      <div class="chart-wrap tall"><canvas id="schoolChart" role="img" aria-label="Bar chart of enrollment by school for the selected year"></canvas></div>
+    </div>
+  </div>
+
+  <h2>School detail</h2>
+  <div class="table-wrap">
+    <table>
+      <thead><tr id="thRow"></tr></thead>
+      <tbody id="tbody"></tbody>
+      <tfoot id="tfoot"></tfoot>
+    </table>
+  </div>
+
+  <div class="notes">
+    <strong>Notes</strong>
+    <ul>
+      <li>2025-26 is a revised estimate and 2026-27 is a budget projection. Other years are actuals.</li>
+      <li>This file's figures do not match official 10/1 annual enrollment. Use them for trends and planning, and check official counts for reporting.</li>
+      <li>Change is measured from 2022-23 to 2026-27 (budget).</li>
+    </ul>
+  </div>
+</main>
+
+<script>
+const YEARS = ["2022-23","2023-24","2024-25","2025-26","2026-27"];
+const STATUS = ["Actual","Actual","Actual","Revised","Budget"];
+const LEVELS = ["All","Elementary","Middle","High"];
+const LEVEL_COLORS = {Elementary:"#2563eb", Middle:"#10b981", High:"#f59e0b"};
+
+const SCHOOLS = [
+  {name:"La Academia/Kinder Academy", level:"Elementary", v:[502,510,492,480,489]},
+  {name:"Bluff Creek Elementary", level:"Elementary", v:[507,476,462,422,397]},
+  {name:"Carver Elementary", level:"Elementary", v:[748,785,782,797,811]},
+  {name:"Chanhassen Elementary", level:"Elementary", v:[445,433,446,433,414]},
+  {name:"Clover Ridge Elementary", level:"Elementary", v:[657,645,632,609,614]},
+  {name:"Jonathan Elementary", level:"Elementary", v:[556,539,541,525,502]},
+  {name:"Victoria Elementary", level:"Elementary", v:[652,655,669,663,690]},
+  {name:"Chaska Middle School East", level:"Middle", v:[583,654,660,686,648]},
+  {name:"Chaska Middle School West", level:"Middle", v:[776,785,800,804,782]},
+  {name:"Pioneer Ridge Middle School", level:"Middle", v:[620,584,589,597,612]},
+  {name:"Chaska High School", level:"High", v:[1584,1549,1504,1471,1446]},
+  {name:"Chanhassen High School", level:"High", v:[1370,1361,1385,1393,1414]},
+  {name:"Integrated Arts Academy", level:"High", v:[73,61,55,48,36]}
+];
+
+let yearIdx = 3;          // default: 2025-26 (revised)
+let level = "All";
+let sortKey = "name", sortDir = 1;
+
+const fmt = n => n.toLocaleString("en-US");
+const pct = n => (n>0?"+":"") + n.toFixed(1) + "%";
+const signed = n => (n>0?"+":"") + fmt(n);
+
+function visible(){ return SCHOOLS.filter(s => level==="All" || s.level===level); }
+function sumOf(list, i){ return list.reduce((a,s)=>a+s.v[i],0); }
+
+// Chart defaults from theme
+const cs = getComputedStyle(document.documentElement);
+const MUTED = cs.getPropertyValue("--muted").trim();
+const BORDER = cs.getPropertyValue("--border").trim();
+Chart.defaults.color = MUTED;
+Chart.defaults.borderColor = BORDER;
+Chart.defaults.font.family = "system-ui,-apple-system,Segoe UI,Roboto,sans-serif";
+
+// Build controls
+const yearSel = document.getElementById("yearSel");
+YEARS.forEach((y,i)=>{
+  const o = document.createElement("option");
+  o.value = i; o.textContent = `${y} (${STATUS[i]})`;
+  yearSel.appendChild(o);
+});
+yearSel.value = yearIdx;
+yearSel.addEventListener("change", e => { yearIdx = +e.target.value; render(); });
+
+const levelSeg = document.getElementById("levelSeg");
+LEVELS.forEach(l=>{
+  const b = document.createElement("button");
+  b.textContent = l; b.dataset.level = l;
+  b.addEventListener("click", ()=>{ level = l; render(); });
+  levelSeg.appendChild(b);
+});
+
+// Table headers
+const thRow = document.getElementById("thRow");
+const cols = [
+  {key:"name", label:"School"},
+  {key:"level", label:"Level"},
+  ...YEARS.map((y,i)=>({key:"y"+i, label:y, yi:i})),
+  {key:"chg", label:"Change 22-23 to 26-27"}
+];
+cols.forEach(c=>{
+  const th = document.createElement("th");
+  th.dataset.key = c.key;
+  th.innerHTML = c.label + '<span class="arrow"></span>';
+  th.addEventListener("click", ()=>{
+    if (sortKey===c.key) sortDir*=-1; else { sortKey=c.key; sortDir = (c.key==="name"||c.key==="level")?1:-1; }
+    render();
+  });
+  thRow.appendChild(th);
+});
+
+function sortVal(s, key){
+  if (key==="name") return s.name;
+  if (key==="level") return ["Elementary","Middle","High"].indexOf(s.level);
+  if (key==="chg") return s.v[4]-s.v[0];
+  const i = +key.slice(1);
+  return s.v[i];
+}
+
+// Charts
+const trendChart = new Chart(document.getElementById("trendChart"), {
+  type:"line",
+  data:{labels:YEARS, datasets:[]},
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    interaction:{mode:"index", intersect:false},
+    plugins:{legend:{position:"bottom"}, tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${fmt(c.parsed.y)}`}}},
+    scales:{y:{beginAtZero:false, ticks:{callback:v=>fmt(v)}}}
+  }
+});
+
+const schoolChart = new Chart(document.getElementById("schoolChart"), {
+  type:"bar",
+  data:{labels:[], datasets:[{label:"Enrollment", data:[], backgroundColor:[], borderRadius:4}]},
+  options:{
+    indexAxis:"y", responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>fmt(c.parsed.x)}}},
+    scales:{x:{beginAtZero:true, ticks:{callback:v=>fmt(v)}}, y:{ticks:{autoSkip:false}}}
+  }
+});
+
+function renderKPIs(list){
+  const i = yearIdx;
+  const total = sumOf(list, i);
+  const base = sumOf(list, 0);
+  const diff = total - base;
+  const dPct = base ? diff/base*100 : 0;
+  const top = list.length ? list.reduce((a,b)=>b.v[i]>a.v[i]?b:a) : null;
+  const cls = diff>=0 ? "pos" : "neg";
+  document.getElementById("kpis").innerHTML = `
+    <div class="kpi"><div class="label">Total enrollment, ${YEARS[i]}</div><div class="value">${fmt(total)}</div><div class="sub">${STATUS[i]} · ${list.length} school${list.length===1?"":"s"}</div></div>
+    <div class="kpi"><div class="label">Change since 2022-23</div><div class="value ${cls}">${signed(diff)}</div><div class="sub ${cls}">${pct(dPct)} vs ${fmt(base)}</div></div>
+    <div class="kpi"><div class="label">Largest school</div><div class="value" style="font-size:17px;margin-top:6px">${top?top.name:"—"}</div><div class="sub">${top?fmt(top.v[i])+" students":""}</div></div>
+  `;
+}
+
+function renderTrend(list){
+  const groups = level==="All" ? ["Elementary","Middle","High"] : [level];
+  const datasets = groups.map(g=>{
+    const members = list.filter(s=>s.level===g);
+    return {
+      label:g, data:YEARS.map((_,i)=>sumOf(members,i)),
+      borderColor:LEVEL_COLORS[g], backgroundColor:LEVEL_COLORS[g],
+      tension:.25, pointRadius:4, borderWidth:2.5
+    };
+  });
+  if (level==="All"){
+    datasets.push({
+      label:"Total", data:YEARS.map((_,i)=>sumOf(list,i)),
+      borderColor:MUTED, backgroundColor:MUTED, borderDash:[6,4],
+      tension:.25, pointRadius:3, borderWidth:2
+    });
+  }
+  trendChart.data.datasets = datasets;
+  trendChart.update();
+}
+
+function renderSchools(list){
+  const i = yearIdx;
+  const sorted = [...list].sort((a,b)=>b.v[i]-a.v[i]);
+  schoolChart.data.labels = sorted.map(s=>s.name);
+  schoolChart.data.datasets[0].data = sorted.map(s=>s.v[i]);
+  schoolChart.data.datasets[0].backgroundColor = sorted.map(s=>LEVEL_COLORS[s.level]);
+  schoolChart.options.scales.y.ticks.font = {size: 11};
+  schoolChart.update();
+  document.getElementById("schoolYearLabel").textContent = YEARS[i];
+  document.getElementById("schoolLegend").innerHTML =
+    ["Elementary","Middle","High"]
+      .filter(g => level==="All" || g===level)
+      .map(g=>`<span style="--c:${LEVEL_COLORS[g]}">${g}</span>`).join("");
+}
+
+function renderTable(list){
+  const i = yearIdx;
+  const rows = [...list].sort((a,b)=>{
+    const va = sortVal(a, sortKey), vb = sortVal(b, sortKey);
+    if (typeof va === "string") return va.localeCompare(vb) * sortDir;
+    return (va-vb) * sortDir;
+  });
+  thRow.querySelectorAll("th").forEach(th=>{
+    const selCol = th.dataset.key === "y"+i;
+    th.classList.toggle("sel", selCol);
+    const arrow = th.querySelector(".arrow");
+    arrow.textContent = th.dataset.key===sortKey ? (sortDir>0?"▲":"▼") : "";
+  });
+  const tbody = document.getElementById("tbody");
+  if (!rows.length){
+    tbody.innerHTML = `<tr><td colspan="${cols.length}" class="empty">No schools in this level.</td></tr>`;
+  } else {
+    tbody.innerHTML = rows.map(s=>{
+      const chg = s.v[4]-s.v[0];
+      const cPct = s.v[0] ? chg/s.v[0]*100 : 0;
+      const cls = chg>=0 ? "pos" : "neg";
+      const cells = s.v.map((v,k)=>`<td class="${k===i?"sel":""}">${fmt(v)}</td>`).join("");
+      return `<tr><td>${s.name}</td><td><span class="tag">${s.level}</span></td>${cells}
+        <td class="${cls}">${signed(chg)} (${pct(cPct)})</td></tr>`;
+    }).join("");
+  }
+  const totRow = YEARS.map((_,k)=>sumOf(list,k));
+  const tChg = totRow[4]-totRow[0];
+  const tPct = totRow[0] ? tChg/totRow[0]*100 : 0;
+  document.getElementById("tfoot").innerHTML = `<tr><td>Total</td><td></td>${totRow.map((v,k)=>`<td class="${k===i?"sel":""}">${fmt(v)}</td>`).join("")}
+    <td class="${tChg>=0?"pos":"neg"}">${signed(tChg)} (${pct(tPct)})</td></tr>`;
+}
+
+function render(){
+  document.querySelectorAll(".seg button").forEach(b=>b.classList.toggle("on", b.dataset.level===level));
+  yearSel.value = yearIdx;
+  const list = visible();
+  renderKPIs(list);
+  renderTrend(list);
+  renderSchools(list);
+  renderTable(list);
+}
+
+render();
+</script>
+</body>
+</html>

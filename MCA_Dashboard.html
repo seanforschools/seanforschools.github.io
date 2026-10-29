@@ -52,10 +52,12 @@ th{color:var(--muted);font-weight:500;cursor:pointer;user-select:none}
     <select id="subject"><option value="reading">Reading</option><option value="math">Math</option><option value="science">Science</option></select></div>
   <div class="ctl"><label for="grade">Grade</label>
     <select id="grade"></select></div>
-  <div class="ctl"><label for="year">Year (bar chart and cards)</label>
+  <div class="ctl"><label for="startyear">From year (start)</label>
+    <select id="startyear"></select></div>
+  <div class="ctl"><label for="year">To year (end; bar chart and cards)</label>
     <select id="year"></select></div>
   <div class="ctl"><label for="disp">Display</label>
-    <select id="disp"><option value="pct">Percent proficient</option><option value="rank">Rank (1 = highest)</option><option value="change">Change from 2019 (points)</option></select></div>
+    <select id="disp"><option value="pct">Percent proficient</option><option value="rank">Rank (1 = highest)</option><option value="change">Change from start year (points)</option></select></div>
   <div class="ctl"><label for="view">Chart type</label>
     <select id="view"><option value="line">Trend (line)</option><option value="bar">Compare (bar)</option></select></div>
 </div>
@@ -80,7 +82,7 @@ th{color:var(--muted);font-weight:500;cursor:pointer;user-select:none}
     <div class="notes">
       There was no MCA testing in Rochester Public School District in 2023 due to a cyberattack.
       In 2026, the MCA-IV Reading Test was introduced, and in 2025, the MCA-IV Science Test was introduced. Be cautious with comparisons to previous years.
-            In change mode, each value is the district's percent proficient minus its 2019 value, in percentage points, so the 2019 column is 0. In the bar chart, the change is measured from 2019 to the selected year, so choose 2026 for the full 2019 to 2026 change. In rank mode, 1 is the highest percent proficient among the districts currently selected for that grade and year, so ranks change when you change the selection. Tied districts share a rank. Places gained is the change in rank from 2019 to 2026, so a positive number means the district moved up. A district can be in more than one group (for example, Edina is both Top 30 and Similar).
+            In change mode, each value is the district's percent proficient minus its value in the From year (2019 by default), in percentage points, so the From year column is 0. In the bar chart, the change is measured from the From year to the To year. In rank mode, 1 is the highest percent proficient among the districts currently selected for that grade and year, so ranks change when you change the selection. Tied districts share a rank. Places gained is the change in rank from the From year to the To year, so a positive number means the district moved up. A district can be in more than one group (for example, Edina is both Top 30 and Similar).
     </div>
   </div>
 </div>
@@ -118,10 +120,13 @@ function visibleList(){ return ORDER.filter(d => d===ECCS || groupsOf(d).some(g 
 function colorFor(d){ const i = ORDER.indexOf(d); return `hsl(${Math.round(i*360/ORDER.length)},65%,50%)`; }
 function mode(){ return $("disp").value; }
 function changeMode(){ return mode()==="change"; }
+function START(){ return +$("startyear").value; }
+function endYear(){ return +$("year").value; }
+function RANGE(){ return YEARS.filter(y => y>=START() && y<=endYear()); }
 function metric(d,g,y){
   if(mode()==="rank") return rankOf(d,g,y);
   if(mode()==="change"){
-    const v = val(d,g,y), b = val(d,g,2019);
+    const v = val(d,g,y), b = val(d,g,START());
     return (v===null||b===null) ? null : +(v-b).toFixed(1);
   }
   return val(d,g,y);
@@ -156,11 +161,12 @@ function setSubject(s){
 function init(){
   setSubject("reading");
   $("subject").onchange = e => { setSubject(e.target.value); update(); };
+  $("startyear").innerHTML = YEARS.map(y=>`<option value="${y}" ${y===2019?"selected":""}>${y}</option>`).join("");
   $("year").innerHTML = YEARS.map(y=>`<option value="${y}" ${y===2026?"selected":""}>${y}</option>`).join("");
   document.querySelectorAll(".gf").forEach(cb=>{
     cb.onchange = ()=>{ cb.checked ? activeGroups.add(cb.value) : activeGroups.delete(cb.value); renderList(); update(); };
   });
-  ["grade","year","view","disp"].forEach(id => $(id).addEventListener("change", ()=>{ if(id==="disp"){ sortKey="2026"; sortDir = mode()==="rank" ? 1 : -1; } update(); }));
+  ["grade","year","startyear","view","disp"].forEach(id => $(id).addEventListener("change", ()=>{ if(id==="disp"){ sortDir = mode()==="rank" ? 1 : -1; } if(id==="disp"||id==="year"){ sortKey=String(endYear()); } update(); }));
   $("selvis").onclick = ()=>{ visibleList().forEach(d=>selected.add(d)); selected.add(ECCS); renderList(); update(); };
   $("clear").onclick = ()=>{ selected = new Set([ECCS]); renderList(); update(); };
   $("default").onclick = ()=>{ selected = new Set(DEFAULT_SET); renderList(); update(); };
@@ -188,6 +194,13 @@ function currentNames(){
 }
 
 function update(){
+  if(START() > endYear()){
+    if(chart){ chart.destroy(); chart = null; }
+    $("kpis").innerHTML = `<div class="kpi"><div class="l">The From year must be on or before the To year.</div></div>`;
+    $("tbl").querySelector("thead").innerHTML = "";
+    $("tbl").querySelector("tbody").innerHTML = "";
+    return;
+  }
   const g = $("grade").value, y = +$("year").value, view = $("view").value;
   const names = currentNames();
   renderKpis(names, g, y);
@@ -207,10 +220,10 @@ function renderKpis(names, g, y){
     const top = vals.reduce((a,b)=>b.v>a.v?b:a);
     const low = vals.reduce((a,b)=>b.v<a.v?b:a);
     $("kpis").innerHTML = `
-      <div class="kpi"><div class="l">Average change, ${GRADE_NAMES[g]}, 2019 to ${y}</div><div class="v">${sgn(avg)}</div></div>
+      <div class="kpi"><div class="l">Average change, ${GRADE_NAMES[g]}, ${START()} to ${y}</div><div class="v">${sgn(avg)}</div></div>
       <div class="kpi"><div class="l">Biggest gain</div><div class="v">${sgn(top.v)}</div><div class="l">${top.d}</div></div>
       <div class="kpi"><div class="l">Biggest decline</div><div class="v">${sgn(low.v)}</div><div class="l">${low.d}</div></div>
-      <div class="kpi"><div class="l">Eastern Carver County change</div><div class="v">${ec===null?"—":sgn(ec)}</div><div class="l">${GRADE_NAMES[g]}, 2019 to ${y}</div></div>`;
+      <div class="kpi"><div class="l">Eastern Carver County change</div><div class="v">${ec===null?"—":sgn(ec)}</div><div class="l">${GRADE_NAMES[g]}, ${START()} to ${y}</div></div>`;
     return;
   }
   if(rankMode){
@@ -244,8 +257,8 @@ function renderChart(names, g, y, view){
   const chMode = mode()==="change";
   let config;
   if(view==="line"){
-    config = { type:"line", data:{ labels: YEARS.map(String), datasets: names.map(d=>({
-      label:d, data: YEARS.map(yr=>metric(d,g,yr)),
+    config = { type:"line", data:{ labels: RANGE().map(String), datasets: names.map(d=>({
+      label:d, data: RANGE().map(yr=>metric(d,g,yr)),
       borderColor: colorFor(d), backgroundColor: colorFor(d),
       borderWidth: d===ECCS?3.5:2, tension:0.25, spanGaps:false, pointRadius:d===ECCS?4:3
     })) } };
@@ -260,7 +273,7 @@ function renderChart(names, g, y, view){
               title:{display:true,text:"Rank (1 = highest)",color:muted} }
           : chMode
             ? { ticks:{color:muted, callback:v=>(v>0?"+":"")+v}, grid:{color:grid},
-                title:{display:true,text:"Change from 2019 (points)",color:muted} }
+                title:{display:true,text:`Change from ${START()} (points)`,color:muted} }
             : { min:0, max:100, ticks:{color:muted, callback:v=>v+"%"}, grid:{color:grid} }
       }
     };
@@ -296,9 +309,10 @@ function renderChart(names, g, y, view){
 
 function renderTable(names, g){
   const rankMode = mode()==="rank";
-  const head = `<tr><th data-k="name">District</th>${YEARS.map(y=>`<th data-k="${y}">${y}</th>`).join("")}<th data-k="chg">${rankMode?"Places gained (2019 to 2026)":"Change 2019 to 2026 (pts)"}</th></tr>`;
+  if(!isNaN(+sortKey) && !RANGE().includes(+sortKey)) sortKey = String(endYear());
+  const head = `<tr><th data-k="name">District</th>${RANGE().map(y=>`<th data-k="${y}">${y}</th>`).join("")}<th data-k="chg">${rankMode?`Places gained (${START()} to ${endYear()})`:`Change ${START()} to ${endYear()} (pts)`}</th></tr>`;
   let rows = names.map(d=>{
-    const v = YEARS.map(y=>metric(d,g,y));
+    const v = RANGE().map(y=>metric(d,g,y));
     const first=v[0], last=v[v.length-1];
     let chg = null;
     if(first!==null && last!==null) chg = rankMode ? (first-last) : +(last-first).toFixed(1);

@@ -100,8 +100,8 @@ li,p{font-size:14px}
   </section>
 
   <section>
-    <h2 id="snapTitle">Net by district</h2>
-    <p class="sub">Ranked from most net IN to most net OUT. Districts with no flows in the selected year are not shown.</p>
+    <h2 id="snapTitle">Net by district, all years</h2>
+    <p class="sub">Ranked from most net IN to most net OUT. Choose a school year, or All years for totals across 2016-17 through 2025-26. Districts with no flows in the selected period are not shown.</p>
     <div class="controls">
       <label>School year
         <select id="year"></select>
@@ -215,12 +215,17 @@ function renderDetail() {
 
 /* ---------- Year snapshot ---------- */
 function renderSnap() {
-  const i = +$('#year').value;
-  const rows = ds.map(d => ({ name: d.name, in: d.in[i], out: d.out[i], net: d.net[i] }))
+  const sel = $('#year').value;
+  const isAll = sel === 'all';
+  const i = isAll ? -1 : +sel;
+  const pick = d => (isAll
+    ? { name: d.name, in: d.totIn, out: d.totOut, net: d.totNet }
+    : { name: d.name, in: d.in[i], out: d.out[i], net: d.net[i] });
+  $('#snapTitle').textContent = isAll ? 'Net by district, all years' : `Net by district, ${D.years[i]}`;
+  const rows = ds.map(pick)
     .filter(r => r.in + r.out > 0)
     .sort((a, b) => b.net - a.net || a.name.localeCompare(b.name));
   const m = Math.max(1, ...rows.map(r => Math.abs(r.net)));
-  $('#snapTitle').textContent = `Net by district, ${D.years[i]}`;
   $('#snap').innerHTML = rows.length ? rows.map(r => {
     const w = Math.abs(r.net) / m * 50;
     const left = r.net < 0 ? 50 - w : 50;
@@ -244,8 +249,9 @@ function init() {
   $('#pick').innerHTML = ds.map(d => `<option value="${d.id}">${esc(d.name)}</option>`).join('');
   $('#pick').value = ds.reduce((best, d) => (d.totIn + d.totOut > ds[best].totIn + ds[best].totOut ? d.id : best), 0);
   $('#pick').addEventListener('change', renderDetail);
-  $('#year').innerHTML = D.years.map((y, i) => `<option value="${i}">${y}</option>`).join('');
-  $('#year').value = D.years.length - 1;
+  $('#year').innerHTML = '<option value="all">All years</option>' +
+    D.years.map((y, i) => `<option value="${i}">${y}</option>`).join('');
+  $('#year').value = 'all';
   $('#year').addEventListener('change', renderSnap);
   renderMatrix();
   renderDetail();

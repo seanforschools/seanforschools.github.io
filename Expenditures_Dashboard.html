@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FY2025 General Fund Expenditures - District Comparisons</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#ffffff;--surface:#f5f6f8;--text:#1d2330;--muted:#6b7280;--border:#dde1e7;--accent:#1f3864;--pos:#2e7d32;--neg:#b91c1c;color-scheme:light}
+@media (prefers-color-scheme: dark){:root{--bg:#14171f;--surface:#1d222c;--text:#e6e9ef;--muted:#9aa3b2;--border:#2e3542;--accent:#8fb4ff;--pos:#6fcf97;--neg:#f28b82;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,system-ui,sans-serif;background:var(--bg);color:var(--text);padding:28px 18px;line-height:1.45}
+main{max-width:1100px;margin:0 auto}
+h1{font-size:24px;margin:0 0 4px}
+h2{font-size:16px;margin:0 0 10px}
+.sub{color:var(--muted);margin:0 0 20px;font-size:14px}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px}
+.controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.controls label{font-size:14px;font-weight:bold}
+select{font:inherit;padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text)}
+.checks{display:flex;flex-wrap:wrap;gap:14px;font-size:14px}
+.checks label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.lbl-inline{font-size:14px;font-weight:bold}
+.msg{color:var(--neg);font-size:13px;margin:6px 0 0}
+.btnrow{display:flex;gap:6px;margin:10px 0 8px;flex-wrap:wrap}
+button{font:inherit;font-size:14px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);cursor:pointer}
+.dlist{max-height:260px;overflow:auto;font-size:13px;border-top:1px solid var(--border);padding-top:6px}
+.dlist label{display:flex;gap:6px;align-items:center;padding:3px 2px;cursor:pointer}
+.dlist label.locked{color:var(--muted);cursor:default}
+.tag{font-size:11px;color:var(--muted);margin-left:auto}
+.top{display:grid;grid-template-columns:1fr 1.4fr;gap:16px;align-items:start}
+@media (max-width:820px){.top{grid-template-columns:1fr}}
+.eccs{border-left:4px solid var(--accent);padding-left:12px}
+.eccs .big{font-size:26px;font-weight:bold;color:var(--accent)}
+.eccs .lbl{font-size:12px;color:var(--muted)}
+.eccs .stats{margin-top:12px;font-size:13px}
+.eccs .stats div{display:flex;justify-content:space-between;border-top:1px solid var(--border);padding:5px 0}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--border)}
+th{color:var(--muted);font-weight:bold;font-size:12px}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.pos{color:var(--pos)} .neg{color:var(--neg)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+@media (max-width:820px){.grid{grid-template-columns:1fr}}
+.grid .panel{margin:0}
+.grid .wide{grid-column:1/-1}
+.chartbox{position:relative;height:360px}
+.note{font-size:12px;color:var(--muted);border-top:1px solid var(--border);padding-top:12px;margin-top:18px}
+</style>
+</head>
+<body>
+<main>
+  <h1>FY2025 General Fund Expenditures - District Comparisons</h1>
+  <p class="sub">Eastern Carver County Public Schools (ECCS) compared with the average of a selected district group. Fiscal year 2025, all schools.</p>
+
+  <section class="panel">
+    <div class="controls">
+      <span class="lbl-inline">Show districts from:</span>
+      <div class="checks" id="groupChecks"></div>
+    </div>
+    <div class="btnrow">
+      <button id="selvis">Select visible</button><button id="clear">Clear</button><button id="default">Default</button>
+    </div>
+    <div class="dlist" id="dlist"></div>
+    <p class="msg" id="noneMsg" style="display:none">Select at least one district to show a comparison average.</p>
+  </section>
+
+  <section class="panel">
+    <h2>ECCS compared with selected districts</h2>
+    <div class="top">
+      <div class="eccs">
+        <div class="lbl">Eastern Carver County (0112-01)</div>
+        <div class="big" id="eccsTotal"></div>
+        <div class="lbl">Total general fund per ADM</div>
+        <div class="stats" id="eccsStats"></div>
+      </div>
+      <div>
+        <table>
+          <thead><tr>
+            <th>Measure</th>
+            <th class="num">ECCS</th>
+            <th class="num" id="avgHead">Selected average</th>
+            <th class="num">Difference</th>
+          </tr></thead>
+          <tbody id="cmpBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>Dollars per ADM by category</h2>
+      <div class="chartbox"><canvas id="perAdmChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <h2>Share of total general fund</h2>
+      <div class="chartbox"><canvas id="shareChart"></canvas></div>
+    </div>
+  </div>
+
+  <section class="panel">
+    <h2>Rank by metric</h2>
+    <div class="controls">
+      <label for="metricSel">Metric</label><select id="metricSel"></select>
+      <label for="orderSel">Order</label>
+      <select id="orderSel"><option value="desc">Highest first</option><option value="asc">Lowest first</option></select>
+      <label for="scopeSel">Include</label>
+      <select id="scopeSel"><option value="group" selected>ECCS and selected districts</option><option value="all">All loaded districts</option></select>
+    </div>
+    <p class="msg" id="rankNote" style="color:var(--muted)"></p>
+    <div id="rankBox" style="position:relative"><canvas id="rankChart"></canvas></div>
+  </section>
+
+  <section class="panel">
+    <h2>Detail by district</h2>
+    <div class="controls">
+      <label for="distSel">District</label>
+      <select id="distSel"></select>
+    </div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr>
+          <th>District</th><th>Program category</th>
+          <th class="num">Students served (ADM)</th>
+          <th class="num">Dollars per ADM</th>
+          <th class="num">% of total general fund</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <p class="note">Source: Minnesota Department of Education, Expenditures District/Site Level Reports, Fiscal Year 2025 (24-25 files), All Schools. Dollars per ADM and percentages are as reported in each source. Selected averages are simple (unweighted) means of the checked districts, excluding ECCS. Group membership is from the Neighboring, Similar, and Top 30 district lists; a district in more than one group appears once in the list. Operating subtotals are excluded from category charts to avoid double-counting; Capital Expenditures is included and is part of total general fund.</p>
+</main>
+
+<script>
+const DATA = {"districts": [{"district": "0001-03 Minneapolis Public School District", "code": "0001-03", "name": "Minneapolis Public School District", "year": "2025", "students": 30665.99, "total_per_adm": 22596.25, "total_pct": 100, "total_dollars": 692936469.33, "categories": [{"category": "District Level Administration", "dollars_per_adm": 1524.08, "pct": 6.74, "total": 46737488.67}, {"category": "School Level Administration", "dollars_per_adm": 717.8, "pct": 3.18, "total": 22011941.57}, {"category": "Regular Instruction", "dollars_per_adm": 8800.04, "pct": 38.94, "total": 269861931.5}, {"category": "Career and Technical Instruction", "dollars_per_adm": 217.43, "pct": 0.96, "total": 6667882.73}, {"category": "Special Education", "dollars_per_adm": 4598.43, "pct": 20.35, "total": 141015378.91}, {"category": "Student Activities and Athletics", "dollars_per_adm": 175.56, "pct": 0.78, "total": 5383854.69}, {"category": "Instructional Support Services", "dollars_per_adm": 1389.55, "pct": 6.15, "total": 42612063.61}, {"category": "Pupil Support Services", "dollars_per_adm": 1279.61, "pct": 5.67, "total": 39240316.11}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1235.89, "pct": 5.47, "total": 37899682.94}, {"category": "Student Transportation", "dollars_per_adm": 2289.49, "pct": 10.13, "total": 70209523.04}, {"category": "Capital Expenditures", "dollars_per_adm": 368.37, "pct": 1.63, "total": 11296405.56}]}, {"district": "0011-01 Anoka-Hennepin School District", "code": "0011-01", "name": "Anoka-Hennepin School District", "year": "2025", "students": 37658.55, "total_per_adm": 17349.37, "total_pct": 100, "total_dollars": 653351670.5, "categories": [{"category": "District Level Administration", "dollars_per_adm": 455.82, "pct": 2.63, "total": 17165644.39}, {"category": "School Level Administration", "dollars_per_adm": 612.72, "pct": 3.53, "total": 23074125.62}, {"category": "Regular Instruction", "dollars_per_adm": 6894.08, "pct": 39.74, "total": 259621072.18}, {"category": "Career and Technical Instruction", "dollars_per_adm": 420.25, "pct": 2.42, "total": 15825703.1}, {"category": "Special Education", "dollars_per_adm": 3952.75, "pct": 22.78, "total": 148854799.82}, {"category": "Student Activities and Athletics", "dollars_per_adm": 291.31, "pct": 1.68, "total": 10970309.96}, {"category": "Instructional Support Services", "dollars_per_adm": 1225.36, "pct": 7.06, "total": 46145249.13}, {"category": "Pupil Support Services", "dollars_per_adm": 689.01, "pct": 3.97, "total": 25947224.82}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 990.95, "pct": 5.71, "total": 37317680.48}, {"category": "Student Transportation", "dollars_per_adm": 963.48, "pct": 5.55, "total": 36283217.3}, {"category": "Capital Expenditures", "dollars_per_adm": 853.64, "pct": 4.92, "total": 32146643.7}]}, {"district": "0012-01 Centennial Public School District", "code": "0012-01", "name": "Centennial Public School District", "year": "2025", "students": 6742.03, "total_per_adm": 15713.09, "total_pct": 100, "total_dollars": 105938145.25, "categories": [{"category": "District Level Administration", "dollars_per_adm": 467.67, "pct": 2.98, "total": 3153012.17}, {"category": "School Level Administration", "dollars_per_adm": 511.25, "pct": 3.25, "total": 3446887.88}, {"category": "Regular Instruction", "dollars_per_adm": 6016.97, "pct": 38.3, "total": 40566614.34}, {"category": "Career and Technical Instruction", "dollars_per_adm": 141.35, "pct": 0.9, "total": 952988.7}, {"category": "Special Education", "dollars_per_adm": 3413.94, "pct": 21.73, "total": 23016875.17}, {"category": "Student Activities and Athletics", "dollars_per_adm": 330.59, "pct": 2.1, "total": 2228868.67}, {"category": "Instructional Support Services", "dollars_per_adm": 624.68, "pct": 3.98, "total": 4211642.19}, {"category": "Pupil Support Services", "dollars_per_adm": 433.93, "pct": 2.76, "total": 2925574.54}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1140.68, "pct": 7.26, "total": 7690466.72}, {"category": "Student Transportation", "dollars_per_adm": 1055.79, "pct": 6.72, "total": 7118194.72}, {"category": "Capital Expenditures", "dollars_per_adm": 1576.24, "pct": 10.03, "total": 10627020.15}]}, {"district": "0077-01 Mankato Public School District", "code": "0077-01", "name": "Mankato Public School District", "year": "2025", "students": 8027.23, "total_per_adm": 15679.58, "total_pct": 100, "total_dollars": 125863526.56, "categories": [{"category": "District Level Administration", "dollars_per_adm": 421.5, "pct": 2.69, "total": 3383464.01}, {"category": "School Level Administration", "dollars_per_adm": 616, "pct": 3.93, "total": 4944812.15}, {"category": "Regular Instruction", "dollars_per_adm": 6083.7, "pct": 38.8, "total": 48835225.83}, {"category": "Career and Technical Instruction", "dollars_per_adm": 288.91, "pct": 1.84, "total": 2319105.05}, {"category": "Special Education", "dollars_per_adm": 3567.57, "pct": 22.76, "total": 28637718.17}, {"category": "Student Activities and Athletics", "dollars_per_adm": 433.93, "pct": 2.77, "total": 3483255.65}, {"category": "Instructional Support Services", "dollars_per_adm": 625.42, "pct": 3.99, "total": 5020396.56}, {"category": "Pupil Support Services", "dollars_per_adm": 702.59, "pct": 4.48, "total": 5639846.64}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1242.18, "pct": 7.92, "total": 9971253.44}, {"category": "Student Transportation", "dollars_per_adm": 801.94, "pct": 5.11, "total": 6437363.18}, {"category": "Capital Expenditures", "dollars_per_adm": 895.84, "pct": 5.72, "total": 7191085.88}]}, {"district": "0108-01 Central Public School District", "code": "0108-01", "name": "Central Public School District", "year": "2025", "students": 982.98, "total_per_adm": 14085.34, "total_pct": 100, "total_dollars": 13845623.64, "categories": [{"category": "District Level Administration", "dollars_per_adm": 802.74, "pct": 5.7, "total": 789073.64}, {"category": "School Level Administration", "dollars_per_adm": 465.24, "pct": 3.3, "total": 457321.93}, {"category": "Regular Instruction", "dollars_per_adm": 5094.64, "pct": 36.17, "total": 5007932.9}, {"category": "Career and Technical Instruction", "dollars_per_adm": 239.23, "pct": 1.7, "total": 235163.66}, {"category": "Special Education", "dollars_per_adm": 2714.14, "pct": 19.27, "total": 2667944.52}, {"category": "Student Activities and Athletics", "dollars_per_adm": 741.37, "pct": 5.26, "total": 728750.4}, {"category": "Instructional Support Services", "dollars_per_adm": 717.77, "pct": 5.1, "total": 705558.1}, {"category": "Pupil Support Services", "dollars_per_adm": 241.76, "pct": 1.72, "total": 237646.43}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1323.51, "pct": 9.4, "total": 1300986.64}, {"category": "Student Transportation", "dollars_per_adm": 1020.53, "pct": 7.25, "total": 1003163.96}, {"category": "Capital Expenditures", "dollars_per_adm": 724.41, "pct": 5.14, "total": 712081.46}]}, {"district": "0110-01 Waconia Public School District", "code": "0110-01", "name": "Waconia Public School District", "year": "2025", "students": 3888.65, "total_per_adm": 13289.99, "total_pct": 100, "total_dollars": 51680091.76, "categories": [{"category": "District Level Administration", "dollars_per_adm": 604.67, "pct": 4.55, "total": 2351352.41}, {"category": "School Level Administration", "dollars_per_adm": 342.36, "pct": 2.58, "total": 1331312.1}, {"category": "Regular Instruction", "dollars_per_adm": 5441.83, "pct": 40.95, "total": 21161347.88}, {"category": "Career and Technical Instruction", "dollars_per_adm": 163.43, "pct": 1.23, "total": 635540.27}, {"category": "Special Education", "dollars_per_adm": 2844.79, "pct": 21.41, "total": 11062399.37}, {"category": "Student Activities and Athletics", "dollars_per_adm": 531.21, "pct": 4, "total": 2065671.51}, {"category": "Instructional Support Services", "dollars_per_adm": 455.47, "pct": 3.43, "total": 1771146.07}, {"category": "Pupil Support Services", "dollars_per_adm": 329.66, "pct": 2.48, "total": 1281960.55}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1100.46, "pct": 8.28, "total": 4279286.73}, {"category": "Student Transportation", "dollars_per_adm": 1015.08, "pct": 7.64, "total": 3947283.79}, {"category": "Capital Expenditures", "dollars_per_adm": 461.03, "pct": 3.47, "total": 1792791.08}]}, {"district": "0112-01 Eastern Carver County Public School", "code": "0112-01", "name": "Eastern Carver County Public School", "year": "2025", "students": 9213.99, "total_per_adm": 16638.51, "total_pct": 100, "total_dollars": 153307043.4, "categories": [{"category": "District Level Administration", "dollars_per_adm": 606.04, "pct": 3.64, "total": 5584044.48}, {"category": "School Level Administration", "dollars_per_adm": 544.96, "pct": 3.28, "total": 5021269.07}, {"category": "Regular Instruction", "dollars_per_adm": 6247.64, "pct": 37.55, "total": 57565759.58}, {"category": "Career and Technical Instruction", "dollars_per_adm": 156.58, "pct": 0.94, "total": 1442712.35}, {"category": "Special Education", "dollars_per_adm": 3118.03, "pct": 18.74, "total": 28729536.5}, {"category": "Student Activities and Athletics", "dollars_per_adm": 441.87, "pct": 2.66, "total": 4071413.7}, {"category": "Instructional Support Services", "dollars_per_adm": 1081.76, "pct": 6.5, "total": 9967278.63}, {"category": "Pupil Support Services", "dollars_per_adm": 632.3, "pct": 3.8, "total": 5825987.5}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1203.65, "pct": 7.23, "total": 11090414.81}, {"category": "Student Transportation", "dollars_per_adm": 885.15, "pct": 5.32, "total": 8155718.41}, {"category": "Capital Expenditures", "dollars_per_adm": 1720.53, "pct": 10.35, "total": 15852908.37}]}, {"district": "0152-01 Moorhead Area Public Schools", "code": "0152-01", "name": "Moorhead Area Public Schools", "year": "2025", "students": 7539.62, "total_per_adm": 15812.81, "total_pct": 100, "total_dollars": 119222654.89, "categories": [{"category": "District Level Administration", "dollars_per_adm": 403.11, "pct": 2.55, "total": 3039271.15}, {"category": "School Level Administration", "dollars_per_adm": 585.63, "pct": 3.7, "total": 4415455.11}, {"category": "Regular Instruction", "dollars_per_adm": 5765.66, "pct": 36.47, "total": 43470931.72}, {"category": "Career and Technical Instruction", "dollars_per_adm": 243.7, "pct": 1.54, "total": 1837415.35}, {"category": "Special Education", "dollars_per_adm": 3562.16, "pct": 22.53, "total": 26857361.2}, {"category": "Student Activities and Athletics", "dollars_per_adm": 563.9, "pct": 3.57, "total": 4251592.71}, {"category": "Instructional Support Services", "dollars_per_adm": 1075.89, "pct": 6.8, "total": 8111800.49}, {"category": "Pupil Support Services", "dollars_per_adm": 594.91, "pct": 3.76, "total": 4485384.11}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1210.7, "pct": 7.66, "total": 9128202.19}, {"category": "Student Transportation", "dollars_per_adm": 864.81, "pct": 5.47, "total": 6520325.51}, {"category": "Capital Expenditures", "dollars_per_adm": 942.34, "pct": 5.96, "total": 7104915.35}]}, {"district": "0191-01 Burnsville-Eagan-Savage Schools", "code": "0191-01", "name": "Burnsville-Eagan-Savage Schools", "year": "2025", "students": 7735.16, "total_per_adm": 20430.93, "total_pct": 100, "total_dollars": 158036472.43, "categories": [{"category": "District Level Administration", "dollars_per_adm": 758.61, "pct": 3.71, "total": 5867948.95}, {"category": "School Level Administration", "dollars_per_adm": 771.7, "pct": 3.78, "total": 5969247.94}, {"category": "Regular Instruction", "dollars_per_adm": 7944.83, "pct": 38.89, "total": 61454533.76}, {"category": "Career and Technical Instruction", "dollars_per_adm": 341.08, "pct": 1.67, "total": 2638248.72}, {"category": "Special Education", "dollars_per_adm": 4242.49, "pct": 20.77, "total": 32816338.64}, {"category": "Student Activities and Athletics", "dollars_per_adm": 297.42, "pct": 1.46, "total": 2300559.74}, {"category": "Instructional Support Services", "dollars_per_adm": 1484.03, "pct": 7.26, "total": 11479221.73}, {"category": "Pupil Support Services", "dollars_per_adm": 779.96, "pct": 3.82, "total": 6033124.01}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1520.18, "pct": 7.44, "total": 11758833.97}, {"category": "Student Transportation", "dollars_per_adm": 1461.21, "pct": 7.15, "total": 11302701.79}, {"category": "Capital Expenditures", "dollars_per_adm": 829.42, "pct": 4.06, "total": 6415713.18}]}, {"district": "0192-01 Farmington Public School District", "code": "0192-01", "name": "Farmington Public School District", "year": "2025", "students": 6388.51, "total_per_adm": 16003.51, "total_pct": 100, "total_dollars": 102238583.15, "categories": [{"category": "District Level Administration", "dollars_per_adm": 636.8, "pct": 3.98, "total": 4068218.64}, {"category": "School Level Administration", "dollars_per_adm": 544.29, "pct": 3.4, "total": 3477230.67}, {"category": "Regular Instruction", "dollars_per_adm": 6448.57, "pct": 40.29, "total": 41196768.6}, {"category": "Career and Technical Instruction", "dollars_per_adm": 222.06, "pct": 1.39, "total": 1418625.19}, {"category": "Special Education", "dollars_per_adm": 3575.19, "pct": 22.34, "total": 22840165.92}, {"category": "Student Activities and Athletics", "dollars_per_adm": 384.54, "pct": 2.4, "total": 2456606.09}, {"category": "Instructional Support Services", "dollars_per_adm": 818.78, "pct": 5.12, "total": 5230749.04}, {"category": "Pupil Support Services", "dollars_per_adm": 525.38, "pct": 3.28, "total": 3356390.86}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1004.49, "pct": 6.28, "total": 6417174.13}, {"category": "Student Transportation", "dollars_per_adm": 1045.16, "pct": 6.54, "total": 6677039.53}, {"category": "Capital Expenditures", "dollars_per_adm": 798.25, "pct": 4.99, "total": 5099614.48}]}, {"district": "0194-01 Lakeville Area Schools", "code": "0194-01", "name": "Lakeville Area Schools", "year": "2025", "students": 11995.66, "total_per_adm": 16530.42, "total_pct": 100, "total_dollars": 198293313.02, "categories": [{"category": "District Level Administration", "dollars_per_adm": 489.4, "pct": 2.96, "total": 5870626.34}, {"category": "School Level Administration", "dollars_per_adm": 295.35, "pct": 1.79, "total": 3542933.84}, {"category": "Regular Instruction", "dollars_per_adm": 6461.56, "pct": 39.09, "total": 77510602.13}, {"category": "Career and Technical Instruction", "dollars_per_adm": 148.85, "pct": 0.9, "total": 1785547.94}, {"category": "Special Education", "dollars_per_adm": 3214.42, "pct": 19.44, "total": 38559120.33}, {"category": "Student Activities and Athletics", "dollars_per_adm": 434.7, "pct": 2.63, "total": 5214559.99}, {"category": "Instructional Support Services", "dollars_per_adm": 1574.59, "pct": 9.53, "total": 18888327.81}, {"category": "Pupil Support Services", "dollars_per_adm": 408.43, "pct": 2.47, "total": 4899384.37}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1136.77, "pct": 6.88, "total": 13636348.2}, {"category": "Student Transportation", "dollars_per_adm": 932.27, "pct": 5.64, "total": 11183234.3}, {"category": "Capital Expenditures", "dollars_per_adm": 1434.08, "pct": 8.67, "total": 17202627.77}]}, {"district": "0196-01 Rosemount-Apple Valley-Eagan", "code": "0196-01", "name": "Rosemount-Apple Valley-Eagan", "year": "2025", "students": 28848.58, "total_per_adm": 17552.71, "total_pct": 100, "total_dollars": 506370688.77, "categories": [{"category": "District Level Administration", "dollars_per_adm": 743.48, "pct": 4.23, "total": 21448465.99}, {"category": "School Level Administration", "dollars_per_adm": 696.81, "pct": 3.97, "total": 20102013.77}, {"category": "Regular Instruction", "dollars_per_adm": 7434.82, "pct": 42.36, "total": 214483981.88}, {"category": "Career and Technical Instruction", "dollars_per_adm": 215.85, "pct": 1.23, "total": 6227131.21}, {"category": "Special Education", "dollars_per_adm": 3595.91, "pct": 20.49, "total": 103736723.36}, {"category": "Student Activities and Athletics", "dollars_per_adm": 405.61, "pct": 2.31, "total": 11701347.47}, {"category": "Instructional Support Services", "dollars_per_adm": 1097.62, "pct": 6.25, "total": 31664703.57}, {"category": "Pupil Support Services", "dollars_per_adm": 549.91, "pct": 3.13, "total": 15863993.51}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 923.44, "pct": 5.26, "total": 26640025.37}, {"category": "Student Transportation", "dollars_per_adm": 967.82, "pct": 5.51, "total": 27920111.77}, {"category": "Capital Expenditures", "dollars_per_adm": 921.44, "pct": 5.25, "total": 26582190.87}]}, {"district": "0270-01 Hopkins Public School District", "code": "0270-01", "name": "Hopkins Public School District", "year": "2025", "students": 7112.05, "total_per_adm": 18633.92, "total_pct": 100, "total_dollars": 132525286.47, "categories": [{"category": "District Level Administration", "dollars_per_adm": 1349.05, "pct": 7.24, "total": 9594481.15}, {"category": "School Level Administration", "dollars_per_adm": 747.99, "pct": 4.01, "total": 5319763.69}, {"category": "Regular Instruction", "dollars_per_adm": 7583.74, "pct": 40.7, "total": 53935938.9}, {"category": "Career and Technical Instruction", "dollars_per_adm": 169.38, "pct": 0.9, "total": 1204631.69}, {"category": "Special Education", "dollars_per_adm": 3659.47, "pct": 19.64, "total": 26026293.89}, {"category": "Student Activities and Athletics", "dollars_per_adm": 307.15, "pct": 1.65, "total": 2184471.02}, {"category": "Instructional Support Services", "dollars_per_adm": 848.29, "pct": 4.55, "total": 6033078.5}, {"category": "Pupil Support Services", "dollars_per_adm": 364.36, "pct": 1.96, "total": 2591346.09}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1680.85, "pct": 9.02, "total": 11954303.9}, {"category": "Student Transportation", "dollars_per_adm": 1426.39, "pct": 7.65, "total": 10144526.85}, {"category": "Capital Expenditures", "dollars_per_adm": 497.25, "pct": 2.67, "total": 3536450.79}]}, {"district": "0271-01 Bloomington Public Schools", "code": "0271-01", "name": "Bloomington Public Schools", "year": "2025", "students": 10290.8, "total_per_adm": 20540.44, "total_pct": 100, "total_dollars": 211377539.08, "categories": [{"category": "District Level Administration", "dollars_per_adm": 724.56, "pct": 3.53, "total": 7456310.56}, {"category": "School Level Administration", "dollars_per_adm": 683.71, "pct": 3.33, "total": 7035903.47}, {"category": "Regular Instruction", "dollars_per_adm": 7844.13, "pct": 38.18, "total": 80722356.31}, {"category": "Career and Technical Instruction", "dollars_per_adm": 132, "pct": 0.64, "total": 1358457.28}, {"category": "Special Education", "dollars_per_adm": 5228.63, "pct": 25.45, "total": 53806709.51}, {"category": "Student Activities and Athletics", "dollars_per_adm": 342.19, "pct": 1.67, "total": 3521443.41}, {"category": "Instructional Support Services", "dollars_per_adm": 1666.02, "pct": 8.11, "total": 17144682.08}, {"category": "Pupil Support Services", "dollars_per_adm": 769.94, "pct": 3.75, "total": 7923327.46}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1113.2, "pct": 5.42, "total": 11455720.18}, {"category": "Student Transportation", "dollars_per_adm": 1197.35, "pct": 5.83, "total": 12321649.11}, {"category": "Capital Expenditures", "dollars_per_adm": 838.71, "pct": 4.08, "total": 8630979.71}]}, {"district": "0272-01 Eden Prairie Public School District", "code": "0272-01", "name": "Eden Prairie Public School District", "year": "2025", "students": 9364.69, "total_per_adm": 18096.67, "total_pct": 100, "total_dollars": 169469618.33, "categories": [{"category": "District Level Administration", "dollars_per_adm": 1193.48, "pct": 6.6, "total": 11176615.72}, {"category": "School Level Administration", "dollars_per_adm": 623.75, "pct": 3.45, "total": 5841221.75}, {"category": "Regular Instruction", "dollars_per_adm": 6988.81, "pct": 38.62, "total": 65448033.04}, {"category": "Career and Technical Instruction", "dollars_per_adm": 390.22, "pct": 2.16, "total": 3654319.12}, {"category": "Special Education", "dollars_per_adm": 3134.06, "pct": 17.32, "total": 29349450.55}, {"category": "Student Activities and Athletics", "dollars_per_adm": 439.83, "pct": 2.43, "total": 4118867.51}, {"category": "Instructional Support Services", "dollars_per_adm": 1105.39, "pct": 6.11, "total": 10351597.42}, {"category": "Pupil Support Services", "dollars_per_adm": 616.97, "pct": 3.41, "total": 5777697.82}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1088.28, "pct": 6.01, "total": 10191381.23}, {"category": "Student Transportation", "dollars_per_adm": 1163.87, "pct": 6.43, "total": 10899248.2}, {"category": "Capital Expenditures", "dollars_per_adm": 1352.01, "pct": 7.47, "total": 12661185.97}]}, {"district": "0273-01 Edina Public School District", "code": "0273-01", "name": "Edina Public School District", "year": "2025", "students": 8750.68, "total_per_adm": 17684.12, "total_pct": 100, "total_dollars": 154747931, "categories": [{"category": "District Level Administration", "dollars_per_adm": 483.51, "pct": 2.73, "total": 4231012.21}, {"category": "School Level Administration", "dollars_per_adm": 471.2, "pct": 2.66, "total": 4123306.18}, {"category": "Regular Instruction", "dollars_per_adm": 7435.1, "pct": 42.04, "total": 65062126.37}, {"category": "Career and Technical Instruction", "dollars_per_adm": 93.84, "pct": 0.53, "total": 821190.48}, {"category": "Special Education", "dollars_per_adm": 3378.01, "pct": 19.1, "total": 29559848.4}, {"category": "Student Activities and Athletics", "dollars_per_adm": 397.31, "pct": 2.25, "total": 3476770.75}, {"category": "Instructional Support Services", "dollars_per_adm": 1323.82, "pct": 7.49, "total": 11584324.02}, {"category": "Pupil Support Services", "dollars_per_adm": 639.83, "pct": 3.62, "total": 5598929.76}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1263.28, "pct": 7.14, "total": 11054522.79}, {"category": "Student Transportation", "dollars_per_adm": 926.62, "pct": 5.24, "total": 8108585.46}, {"category": "Capital Expenditures", "dollars_per_adm": 1271.6, "pct": 7.19, "total": 11127314.58}]}, {"district": "0276-01 Minnetonka Public School District", "code": "0276-01", "name": "Minnetonka Public School District", "year": "2025", "students": 11285.89, "total_per_adm": 16934.72, "total_pct": 100, "total_dollars": 191123498.05, "categories": [{"category": "District Level Administration", "dollars_per_adm": 734.24, "pct": 4.34, "total": 8286589.17}, {"category": "School Level Administration", "dollars_per_adm": 611.71, "pct": 3.61, "total": 6903647.12}, {"category": "Regular Instruction", "dollars_per_adm": 8538.97, "pct": 50.42, "total": 96369826.23}, {"category": "Career and Technical Instruction", "dollars_per_adm": 158.62, "pct": 0.94, "total": 1790266.34}, {"category": "Special Education", "dollars_per_adm": 2494.68, "pct": 14.73, "total": 28154679.41}, {"category": "Student Activities and Athletics", "dollars_per_adm": 450.49, "pct": 2.66, "total": 5084230.07}, {"category": "Instructional Support Services", "dollars_per_adm": 792.23, "pct": 4.68, "total": 8940974.99}, {"category": "Pupil Support Services", "dollars_per_adm": 602.99, "pct": 3.56, "total": 6805317.33}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 955.62, "pct": 5.64, "total": 10785035.62}, {"category": "Student Transportation", "dollars_per_adm": 672.82, "pct": 3.97, "total": 7593421.58}, {"category": "Capital Expenditures", "dollars_per_adm": 922.35, "pct": 5.45, "total": 10409510.19}]}, {"district": "0279-01 Osseo Public School District", "code": "0279-01", "name": "Osseo Public School District", "year": "2025", "students": 21032.36, "total_per_adm": 19170.43, "total_pct": 100, "total_dollars": 403199471.68, "categories": [{"category": "District Level Administration", "dollars_per_adm": 718.39, "pct": 3.75, "total": 15109359.99}, {"category": "School Level Administration", "dollars_per_adm": 734.67, "pct": 3.83, "total": 15451775.12}, {"category": "Regular Instruction", "dollars_per_adm": 7979.09, "pct": 41.62, "total": 167819070.42}, {"category": "Career and Technical Instruction", "dollars_per_adm": 246.67, "pct": 1.29, "total": 5188198.58}, {"category": "Special Education", "dollars_per_adm": 3358.43, "pct": 17.52, "total": 70635740.53}, {"category": "Student Activities and Athletics", "dollars_per_adm": 232.66, "pct": 1.21, "total": 4893489}, {"category": "Instructional Support Services", "dollars_per_adm": 1373.67, "pct": 7.16, "total": 28891605.57}, {"category": "Pupil Support Services", "dollars_per_adm": 719.03, "pct": 3.75, "total": 15122924.72}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1029.51, "pct": 5.37, "total": 21652943.81}, {"category": "Student Transportation", "dollars_per_adm": 1078.21, "pct": 5.62, "total": 22677265.63}, {"category": "Capital Expenditures", "dollars_per_adm": 1700.1, "pct": 8.87, "total": 35757098.31}]}, {"district": "0281-01 Robbinsdale Public School District", "code": "0281-01", "name": "Robbinsdale Public School District", "year": "2025", "students": 10577.31, "total_per_adm": 20090.32, "total_pct": 100, "total_dollars": 212501534.08, "categories": [{"category": "District Level Administration", "dollars_per_adm": 858.9, "pct": 4.28, "total": 9084890.8}, {"category": "School Level Administration", "dollars_per_adm": 844.79, "pct": 4.2, "total": 8935580.11}, {"category": "Regular Instruction", "dollars_per_adm": 7862.76, "pct": 39.14, "total": 83166826.63}, {"category": "Career and Technical Instruction", "dollars_per_adm": 114.43, "pct": 0.57, "total": 1210366.59}, {"category": "Special Education", "dollars_per_adm": 4075.41, "pct": 20.28, "total": 43106849.67}, {"category": "Student Activities and Athletics", "dollars_per_adm": 345.69, "pct": 1.72, "total": 3656478.56}, {"category": "Instructional Support Services", "dollars_per_adm": 1060.44, "pct": 5.28, "total": 11216691.65}, {"category": "Pupil Support Services", "dollars_per_adm": 1108.94, "pct": 5.52, "total": 11729593.59}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1568.45, "pct": 7.81, "total": 16589948.35}, {"category": "Student Transportation", "dollars_per_adm": 1688.85, "pct": 8.41, "total": 17863535.72}, {"category": "Capital Expenditures", "dollars_per_adm": 561.66, "pct": 2.8, "total": 5940772.41}]}, {"district": "0284-01 Wayzata Public School District", "code": "0284-01", "name": "Wayzata Public School District", "year": "2025", "students": 12960.83, "total_per_adm": 16784.71, "total_pct": 100, "total_dollars": 217543675.69, "categories": [{"category": "District Level Administration", "dollars_per_adm": 601.46, "pct": 3.58, "total": 7795357.24}, {"category": "School Level Administration", "dollars_per_adm": 496.63, "pct": 2.96, "total": 6436759.99}, {"category": "Regular Instruction", "dollars_per_adm": 6579.01, "pct": 39.2, "total": 85269436.23}, {"category": "Career and Technical Instruction", "dollars_per_adm": 250.14, "pct": 1.49, "total": 3242042}, {"category": "Special Education", "dollars_per_adm": 2413.61, "pct": 14.38, "total": 31282390.83}, {"category": "Student Activities and Athletics", "dollars_per_adm": 368.61, "pct": 2.2, "total": 4777445.16}, {"category": "Instructional Support Services", "dollars_per_adm": 1470.37, "pct": 8.76, "total": 19057204.73}, {"category": "Pupil Support Services", "dollars_per_adm": 565.4, "pct": 3.37, "total": 7328049.35}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1220.56, "pct": 7.27, "total": 15819486.83}, {"category": "Student Transportation", "dollars_per_adm": 1198.69, "pct": 7.14, "total": 15535968.7}, {"category": "Capital Expenditures", "dollars_per_adm": 1620.23, "pct": 9.65, "total": 20999534.63}]}, {"district": "0535-01 Rochester Public School District", "code": "0535-01", "name": "Rochester Public School District", "year": "2025", "students": 17051.02, "total_per_adm": 17106.85, "total_pct": 100, "total_dollars": 291689128.51, "categories": [{"category": "District Level Administration", "dollars_per_adm": 845.69, "pct": 4.95, "total": 14419903.13}, {"category": "School Level Administration", "dollars_per_adm": 781.2, "pct": 4.57, "total": 13320095.53}, {"category": "Regular Instruction", "dollars_per_adm": 6429.18, "pct": 37.58, "total": 109624160.94}, {"category": "Career and Technical Instruction", "dollars_per_adm": 258.13, "pct": 1.51, "total": 4401292.07}, {"category": "Special Education", "dollars_per_adm": 3565.22, "pct": 20.84, "total": 60790719.26}, {"category": "Student Activities and Athletics", "dollars_per_adm": 314.14, "pct": 1.84, "total": 5356354.61}, {"category": "Instructional Support Services", "dollars_per_adm": 736.27, "pct": 4.3, "total": 12554264.24}, {"category": "Pupil Support Services", "dollars_per_adm": 1058.71, "pct": 6.19, "total": 18052014.22}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1080.11, "pct": 6.31, "total": 18416900.76}, {"category": "Student Transportation", "dollars_per_adm": 1322.69, "pct": 7.73, "total": 22553293.58}, {"category": "Capital Expenditures", "dollars_per_adm": 715.51, "pct": 4.18, "total": 12200130.17}]}, {"district": "0621-01 Mounds View Public School District", "code": "0621-01", "name": "Mounds View Public School District", "year": "2025", "students": 11465.34, "total_per_adm": 17652.93, "total_pct": 100, "total_dollars": 202396852.94, "categories": [{"category": "District Level Administration", "dollars_per_adm": 698.01, "pct": 3.95, "total": 8002904.79}, {"category": "School Level Administration", "dollars_per_adm": 783.06, "pct": 4.44, "total": 8978012.02}, {"category": "Regular Instruction", "dollars_per_adm": 6848.32, "pct": 38.79, "total": 78518352.58}, {"category": "Career and Technical Instruction", "dollars_per_adm": 225.12, "pct": 1.28, "total": 2581109.76}, {"category": "Special Education", "dollars_per_adm": 3279.49, "pct": 18.58, "total": 37600438.29}, {"category": "Student Activities and Athletics", "dollars_per_adm": 468.73, "pct": 2.66, "total": 5374183.16}, {"category": "Instructional Support Services", "dollars_per_adm": 1195.11, "pct": 6.77, "total": 13702291.23}, {"category": "Pupil Support Services", "dollars_per_adm": 717.66, "pct": 4.07, "total": 8228235.19}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1362.74, "pct": 7.72, "total": 15624267.61}, {"category": "Student Transportation", "dollars_per_adm": 1443.14, "pct": 8.18, "total": 16546106.51}, {"category": "Capital Expenditures", "dollars_per_adm": 631.55, "pct": 3.58, "total": 7240951.8}]}, {"district": "0622-01 North St. Paul-Maplewood Oakdale", "code": "0622-01", "name": "North St. Paul-Maplewood Oakdale", "year": "2025", "students": 10560.82, "total_per_adm": 18068.89, "total_pct": 100, "total_dollars": 190822330.32, "categories": [{"category": "District Level Administration", "dollars_per_adm": 953.05, "pct": 5.27, "total": 10064995.54}, {"category": "School Level Administration", "dollars_per_adm": 692.56, "pct": 3.83, "total": 7314052.4}, {"category": "Regular Instruction", "dollars_per_adm": 6738.6, "pct": 37.3, "total": 71165188.08}, {"category": "Career and Technical Instruction", "dollars_per_adm": 387.01, "pct": 2.14, "total": 4087118.14}, {"category": "Special Education", "dollars_per_adm": 4279.02, "pct": 23.68, "total": 45189903.98}, {"category": "Student Activities and Athletics", "dollars_per_adm": 385.56, "pct": 2.13, "total": 4071784.73}, {"category": "Instructional Support Services", "dollars_per_adm": 668.4, "pct": 3.7, "total": 7058841.98}, {"category": "Pupil Support Services", "dollars_per_adm": 556.78, "pct": 3.08, "total": 5880070.1}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1321.57, "pct": 7.31, "total": 13956909.14}, {"category": "Student Transportation", "dollars_per_adm": 1034.38, "pct": 5.72, "total": 10923889.35}, {"category": "Capital Expenditures", "dollars_per_adm": 1051.96, "pct": 5.82, "total": 11109576.88}]}, {"district": "0623-01 Roseville Public School District", "code": "0623-01", "name": "Roseville Public School District", "year": "2025", "students": 7324.71, "total_per_adm": 19312.22, "total_pct": 100, "total_dollars": 141456454.53, "categories": [{"category": "District Level Administration", "dollars_per_adm": 939.12, "pct": 4.86, "total": 6878761.75}, {"category": "School Level Administration", "dollars_per_adm": 791.57, "pct": 4.1, "total": 5798023.46}, {"category": "Regular Instruction", "dollars_per_adm": 6831.71, "pct": 35.38, "total": 50040309.54}, {"category": "Career and Technical Instruction", "dollars_per_adm": 306.65, "pct": 1.59, "total": 2246150.04}, {"category": "Special Education", "dollars_per_adm": 4061.54, "pct": 21.03, "total": 29749606.8}, {"category": "Student Activities and Athletics", "dollars_per_adm": 441.02, "pct": 2.28, "total": 3230318.77}, {"category": "Instructional Support Services", "dollars_per_adm": 1312.42, "pct": 6.79, "total": 9613099.02}, {"category": "Pupil Support Services", "dollars_per_adm": 692.34, "pct": 3.59, "total": 5071166.17}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1187.52, "pct": 6.15, "total": 8698260.57}, {"category": "Student Transportation", "dollars_per_adm": 2011.91, "pct": 10.42, "total": 14736657.34}, {"category": "Capital Expenditures", "dollars_per_adm": 736.42, "pct": 3.81, "total": 5394101.07}]}, {"district": "0624-01 White Bear Lake School District", "code": "0624-01", "name": "White Bear Lake School District", "year": "2025", "students": 8417.18, "total_per_adm": 17429.51, "total_pct": 100, "total_dollars": 146707291.49, "categories": [{"category": "District Level Administration", "dollars_per_adm": 467.69, "pct": 2.68, "total": 3936642.51}, {"category": "School Level Administration", "dollars_per_adm": 585.39, "pct": 3.36, "total": 4927308.16}, {"category": "Regular Instruction", "dollars_per_adm": 6322.87, "pct": 36.28, "total": 53220795.81}, {"category": "Career and Technical Instruction", "dollars_per_adm": 241.87, "pct": 1.39, "total": 2035867.53}, {"category": "Special Education", "dollars_per_adm": 3746.68, "pct": 21.5, "total": 31536450.7}, {"category": "Student Activities and Athletics", "dollars_per_adm": 394.03, "pct": 2.26, "total": 3316618.72}, {"category": "Instructional Support Services", "dollars_per_adm": 1162.41, "pct": 6.67, "total": 9784173.14}, {"category": "Pupil Support Services", "dollars_per_adm": 805.55, "pct": 4.62, "total": 6780465.71}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1155.73, "pct": 6.63, "total": 9728018.42}, {"category": "Student Transportation", "dollars_per_adm": 1369.12, "pct": 7.86, "total": 11524100.28}, {"category": "Capital Expenditures", "dollars_per_adm": 1178.17, "pct": 6.76, "total": 9916850.51}]}, {"district": "0625-01 Saint Paul Public Schools", "code": "0625-01", "name": "Saint Paul Public Schools", "year": "2025", "students": 33879.38, "total_per_adm": 22462.41, "total_pct": 100, "total_dollars": 761012295.84, "categories": [{"category": "District Level Administration", "dollars_per_adm": 932.71, "pct": 4.16, "total": 31599695.8}, {"category": "School Level Administration", "dollars_per_adm": 917.64, "pct": 4.08, "total": 31089282.22}, {"category": "Regular Instruction", "dollars_per_adm": 9039.57, "pct": 40.24, "total": 306254896.02}, {"category": "Career and Technical Instruction", "dollars_per_adm": 239.37, "pct": 1.07, "total": 8109662.97}, {"category": "Special Education", "dollars_per_adm": 5218.04, "pct": 23.23, "total": 176784161.74}, {"category": "Student Activities and Athletics", "dollars_per_adm": 311.57, "pct": 1.38, "total": 10555670.97}, {"category": "Instructional Support Services", "dollars_per_adm": 1015.76, "pct": 4.52, "total": 34413216.31}, {"category": "Pupil Support Services", "dollars_per_adm": 1041.93, "pct": 4.64, "total": 35299924.54}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1311.79, "pct": 5.84, "total": 44442642.91}, {"category": "Student Transportation", "dollars_per_adm": 1295.76, "pct": 5.77, "total": 43899417.73}, {"category": "Capital Expenditures", "dollars_per_adm": 1138.27, "pct": 5.07, "total": 38563724.63}]}, {"district": "0709-01 Duluth Public School District", "code": "0709-01", "name": "Duluth Public School District", "year": "2025", "students": 8457.43, "total_per_adm": 18096.9, "total_pct": 100, "total_dollars": 153053271.61, "categories": [{"category": "District Level Administration", "dollars_per_adm": 1415.01, "pct": 7.82, "total": 11967321.31}, {"category": "School Level Administration", "dollars_per_adm": 640.58, "pct": 3.54, "total": 5417590.17}, {"category": "Regular Instruction", "dollars_per_adm": 6916.53, "pct": 38.22, "total": 58496128.13}, {"category": "Career and Technical Instruction", "dollars_per_adm": 343.43, "pct": 1.9, "total": 2904568.4}, {"category": "Special Education", "dollars_per_adm": 4393.26, "pct": 24.28, "total": 37155698.14}, {"category": "Student Activities and Athletics", "dollars_per_adm": 412.6, "pct": 2.28, "total": 3489553.72}, {"category": "Instructional Support Services", "dollars_per_adm": 784, "pct": 4.34, "total": 6630683.51}, {"category": "Pupil Support Services", "dollars_per_adm": 884.11, "pct": 4.89, "total": 7477291.64}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 822.49, "pct": 4.54, "total": 6956164.43}, {"category": "Student Transportation", "dollars_per_adm": 1062.48, "pct": 5.87, "total": 8985782.07}, {"category": "Capital Expenditures", "dollars_per_adm": 422.41, "pct": 2.34, "total": 3572490.09}]}, {"district": "0716-01 Belle Plaine Public School District", "code": "0716-01", "name": "Belle Plaine Public School District", "year": "2025", "students": 1508.85, "total_per_adm": 12557.07, "total_pct": 100, "total_dollars": 18946726.74, "categories": [{"category": "District Level Administration", "dollars_per_adm": 655.81, "pct": 5.22, "total": 989523.7}, {"category": "School Level Administration", "dollars_per_adm": 458.83, "pct": 3.65, "total": 692311.61}, {"category": "Regular Instruction", "dollars_per_adm": 4985.27, "pct": 39.7, "total": 7522028.92}, {"category": "Career and Technical Instruction", "dollars_per_adm": 275.49, "pct": 2.2, "total": 415667.88}, {"category": "Special Education", "dollars_per_adm": 2490.09, "pct": 19.83, "total": 3757166.39}, {"category": "Student Activities and Athletics", "dollars_per_adm": 551.06, "pct": 4.39, "total": 831460.97}, {"category": "Instructional Support Services", "dollars_per_adm": 437.13, "pct": 3.48, "total": 659565.84}, {"category": "Pupil Support Services", "dollars_per_adm": 324.99, "pct": 2.59, "total": 490365.22}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1269.31, "pct": 10.11, "total": 1915194.28}, {"category": "Student Transportation", "dollars_per_adm": 817.05, "pct": 6.51, "total": 1232804.96}, {"category": "Capital Expenditures", "dollars_per_adm": 292.04, "pct": 2.33, "total": 440636.97}]}, {"district": "0717-01 Jordan Public School District", "code": "0717-01", "name": "Jordan Public School District", "year": "2025", "students": 1870.83, "total_per_adm": 14340.59, "total_pct": 100, "total_dollars": 26828789.65, "categories": [{"category": "District Level Administration", "dollars_per_adm": 598.15, "pct": 4.17, "total": 1119043.49}, {"category": "School Level Administration", "dollars_per_adm": 537.83, "pct": 3.75, "total": 1006185.31}, {"category": "Regular Instruction", "dollars_per_adm": 5777.07, "pct": 40.29, "total": 10807918.88}, {"category": "Career and Technical Instruction", "dollars_per_adm": 276.77, "pct": 1.93, "total": 517774.35}, {"category": "Special Education", "dollars_per_adm": 3124.92, "pct": 21.79, "total": 5846185.66}, {"category": "Student Activities and Athletics", "dollars_per_adm": 745.12, "pct": 5.2, "total": 1393989.04}, {"category": "Instructional Support Services", "dollars_per_adm": 522.28, "pct": 3.64, "total": 977103.04}, {"category": "Pupil Support Services", "dollars_per_adm": 484.92, "pct": 3.38, "total": 907202.36}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1005.69, "pct": 7.01, "total": 1881474.27}, {"category": "Student Transportation", "dollars_per_adm": 671.64, "pct": 4.68, "total": 1256518.72}, {"category": "Capital Expenditures", "dollars_per_adm": 596.2, "pct": 4.16, "total": 1115394.53}]}, {"district": "0719-01 Prior Lake-Savage Area Schools", "code": "0719-01", "name": "Prior Lake-Savage Area Schools", "year": "2025", "students": 8709.93, "total_per_adm": 14416.71, "total_pct": 100, "total_dollars": 125568567.32, "categories": [{"category": "District Level Administration", "dollars_per_adm": 696.54, "pct": 4.83, "total": 6066812.91}, {"category": "School Level Administration", "dollars_per_adm": 439.79, "pct": 3.05, "total": 3830536.98}, {"category": "Regular Instruction", "dollars_per_adm": 6204.17, "pct": 43.04, "total": 54037910}, {"category": "Career and Technical Instruction", "dollars_per_adm": 119.96, "pct": 0.83, "total": 1044844.1}, {"category": "Special Education", "dollars_per_adm": 2949.79, "pct": 20.46, "total": 25692496.91}, {"category": "Student Activities and Athletics", "dollars_per_adm": 323.82, "pct": 2.25, "total": 2820460.34}, {"category": "Instructional Support Services", "dollars_per_adm": 1042.24, "pct": 7.23, "total": 9077761.4}, {"category": "Pupil Support Services", "dollars_per_adm": 415.74, "pct": 2.88, "total": 3621082.87}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 957.22, "pct": 6.64, "total": 8337292.45}, {"category": "Student Transportation", "dollars_per_adm": 971.62, "pct": 6.74, "total": 8462781.77}, {"category": "Capital Expenditures", "dollars_per_adm": 295.82, "pct": 2.05, "total": 2576587.59}]}, {"district": "0720-01 Shakopee Public School District", "code": "0720-01", "name": "Shakopee Public School District", "year": "2025", "students": 7731.62, "total_per_adm": 16522.86, "total_pct": 100, "total_dollars": 127748434.5, "categories": [{"category": "District Level Administration", "dollars_per_adm": 515.37, "pct": 3.12, "total": 3984632.05}, {"category": "School Level Administration", "dollars_per_adm": 416.09, "pct": 2.52, "total": 3217019.38}, {"category": "Regular Instruction", "dollars_per_adm": 6571.44, "pct": 39.77, "total": 50807826.55}, {"category": "Career and Technical Instruction", "dollars_per_adm": 171.71, "pct": 1.04, "total": 1327617.64}, {"category": "Special Education", "dollars_per_adm": 3484.89, "pct": 21.09, "total": 26943887.96}, {"category": "Student Activities and Athletics", "dollars_per_adm": 423.39, "pct": 2.56, "total": 3273458.02}, {"category": "Instructional Support Services", "dollars_per_adm": 1042.47, "pct": 6.31, "total": 8059971.19}, {"category": "Pupil Support Services", "dollars_per_adm": 937.04, "pct": 5.67, "total": 7244825.18}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1047.71, "pct": 6.34, "total": 8100481.51}, {"category": "Student Transportation", "dollars_per_adm": 917.79, "pct": 5.55, "total": 7096041.91}, {"category": "Capital Expenditures", "dollars_per_adm": 994.96, "pct": 6.02, "total": 7692673.11}]}, {"district": "0728-01 Elk River Public School District", "code": "0728-01", "name": "Elk River Public School District", "year": "2025", "students": 14299.63, "total_per_adm": 16521.96, "total_pct": 100, "total_dollars": 236257855.11, "categories": [{"category": "District Level Administration", "dollars_per_adm": 634.97, "pct": 3.84, "total": 9079888.63}, {"category": "School Level Administration", "dollars_per_adm": 492.37, "pct": 2.98, "total": 7040640.27}, {"category": "Regular Instruction", "dollars_per_adm": 5577.96, "pct": 33.76, "total": 79762750.34}, {"category": "Career and Technical Instruction", "dollars_per_adm": 237.69, "pct": 1.44, "total": 3398755.53}, {"category": "Special Education", "dollars_per_adm": 3098.48, "pct": 18.76, "total": 44307126.96}, {"category": "Student Activities and Athletics", "dollars_per_adm": 453.38, "pct": 2.74, "total": 6483219.76}, {"category": "Instructional Support Services", "dollars_per_adm": 1018.47, "pct": 6.16, "total": 14563796.09}, {"category": "Pupil Support Services", "dollars_per_adm": 776.91, "pct": 4.7, "total": 11109526.93}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1072.12, "pct": 6.49, "total": 15330925.48}, {"category": "Student Transportation", "dollars_per_adm": 1046.52, "pct": 6.33, "total": 14964819.13}, {"category": "Capital Expenditures", "dollars_per_adm": 2113.09, "pct": 12.79, "total": 30216405.99}]}, {"district": "0742-01 St. Cloud Public School District", "code": "0742-01", "name": "St. Cloud Public School District", "year": "2025", "students": 9495.44, "total_per_adm": 19037.97, "total_pct": 100, "total_dollars": 180774035.6, "categories": [{"category": "District Level Administration", "dollars_per_adm": 739.56, "pct": 3.88, "total": 7022486.09}, {"category": "School Level Administration", "dollars_per_adm": 535.34, "pct": 2.82, "total": 5083277.4}, {"category": "Regular Instruction", "dollars_per_adm": 6674.31, "pct": 35.06, "total": 63375553.48}, {"category": "Career and Technical Instruction", "dollars_per_adm": 206.18, "pct": 1.08, "total": 1957741.35}, {"category": "Special Education", "dollars_per_adm": 4515.78, "pct": 23.72, "total": 42879319.66}, {"category": "Student Activities and Athletics", "dollars_per_adm": 397.53, "pct": 2.09, "total": 3774678.68}, {"category": "Instructional Support Services", "dollars_per_adm": 1143.78, "pct": 6.01, "total": 10860745.28}, {"category": "Pupil Support Services", "dollars_per_adm": 813.45, "pct": 4.28, "total": 7724106.3}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1008.4, "pct": 5.3, "total": 9575243.9}, {"category": "Student Transportation", "dollars_per_adm": 1420.37, "pct": 7.46, "total": 13487000.14}, {"category": "Capital Expenditures", "dollars_per_adm": 1583.27, "pct": 8.32, "total": 15033883.32}]}, {"district": "0833-01 South Washington County Schools", "code": "0833-01", "name": "South Washington County Schools", "year": "2025", "students": 19337.67, "total_per_adm": 17401.77, "total_pct": 100, "total_dollars": 336509827.11, "categories": [{"category": "District Level Administration", "dollars_per_adm": 631.85, "pct": 3.63, "total": 12218609.14}, {"category": "School Level Administration", "dollars_per_adm": 683.6, "pct": 3.93, "total": 13219159.29}, {"category": "Regular Instruction", "dollars_per_adm": 6890.59, "pct": 39.6, "total": 133247976.76}, {"category": "Career and Technical Instruction", "dollars_per_adm": 227, "pct": 1.3, "total": 4389646.83}, {"category": "Special Education", "dollars_per_adm": 3730.88, "pct": 21.44, "total": 72146493.57}, {"category": "Student Activities and Athletics", "dollars_per_adm": 311.57, "pct": 1.79, "total": 6025076.27}, {"category": "Instructional Support Services", "dollars_per_adm": 789.81, "pct": 4.54, "total": 15273162.24}, {"category": "Pupil Support Services", "dollars_per_adm": 753.8, "pct": 4.33, "total": 14576803.25}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1028.17, "pct": 5.91, "total": 19882333.01}, {"category": "Student Transportation", "dollars_per_adm": 1222.34, "pct": 7.02, "total": 23637192.35}, {"category": "Capital Expenditures", "dollars_per_adm": 1132.16, "pct": 6.5, "total": 21893374.4}]}, {"district": "0834-01 Stillwater Area Public Schools", "code": "0834-01", "name": "Stillwater Area Public Schools", "year": "2025", "students": 8253.89, "total_per_adm": 18789.91, "total_pct": 100, "total_dollars": 155089848.84, "categories": [{"category": "District Level Administration", "dollars_per_adm": 973.97, "pct": 5.18, "total": 8039070.12}, {"category": "School Level Administration", "dollars_per_adm": 519.31, "pct": 2.76, "total": 4286319.75}, {"category": "Regular Instruction", "dollars_per_adm": 6821.91, "pct": 36.3, "total": 56307306.45}, {"category": "Career and Technical Instruction", "dollars_per_adm": 270.39, "pct": 1.44, "total": 2231780.72}, {"category": "Special Education", "dollars_per_adm": 3557.57, "pct": 18.94, "total": 29363790.92}, {"category": "Student Activities and Athletics", "dollars_per_adm": 361.15, "pct": 1.92, "total": 2980875.14}, {"category": "Instructional Support Services", "dollars_per_adm": 1121.04, "pct": 5.96, "total": 9252886.7}, {"category": "Pupil Support Services", "dollars_per_adm": 756.27, "pct": 4.02, "total": 6242146.73}, {"category": "Operation Maintenance and Other", "dollars_per_adm": 1187.12, "pct": 6.32, "total": 9798419.45}, {"category": "Student Transportation", "dollars_per_adm": 1703.07, "pct": 9.06, "total": 14056943.88}, {"category": "Capital Expenditures", "dollars_per_adm": 1518.11, "pct": 8.08, "total": 12530308.98}]}]};
+const DIST = DATA.districts;
+const ECCS = '0112-01';
+const GROUPS = {"neighboring": {"label": "Neighboring", "codes": ["0716-01", "0272-01", "0717-01", "0276-01", "0720-01", "0110-01", "0108-01"]}, "similar": {"label": "Similar", "codes": ["0271-01", "0273-01", "0728-01", "0270-01", "0194-01", "0621-01", "0622-01", "0834-01", "0284-01", "0624-01", "0272-01", "0276-01", "0720-01", "0192-01"]}, "top30": {"label": "Top 30", "codes": ["0011-01", "0191-01", "0012-01", "0709-01", "0077-01", "0001-03", "0152-01", "0279-01", "0719-01", "0281-01", "0535-01", "0196-01", "0623-01", "0625-01", "0833-01", "0742-01", "0271-01", "0273-01", "0728-01", "0270-01", "0194-01", "0621-01", "0622-01", "0834-01", "0284-01", "0624-01", "0272-01", "0276-01", "0720-01"]}};
+const CATS = DIST[0].categories.map(c => c.category);
+const SHORT = {
+  'District Level Administration':'District admin',
+  'School Level Administration':'School admin',
+  'Regular Instruction':'Regular instruction',
+  'Career and Technical Instruction':'Career & technical',
+  'Special Education':'Special education',
+  'Student Activities and Athletics':'Activities & athletics',
+  'Instructional Support Services':'Instructional support',
+  'Pupil Support Services':'Pupil support',
+  'Operation Maintenance and Other':'Operations & maintenance',
+  'Student Transportation':'Transportation',
+  'Capital Expenditures':'Capital'
+};
+const CCOL = ['#1f3864','#3b6fb6','#7fa7dd','#2e8b57','#7fc49a','#d97706','#f0b15a','#8b5cf6','#c4b5fd','#b91c1c','#6b7280'];
+const COL_ECCS = '#1f3864', COL_AVG = '#d97706';
+const fmt$ = v => (v<0?'-':'') + '$' + Math.abs(Math.round(v)).toLocaleString('en-US');
+const fmtN = v => Math.round(v).toLocaleString('en-US');
+const fmtP = v => v.toFixed(2) + '%';
+const sgn$ = v => (v>=0?'+':'') + fmt$(v);
+const sgnN = v => (v>=0?'+':'') + fmtN(v);
+const sgnP = v => (v>=0?'+':'') + v.toFixed(2) + ' pts';
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+function metrics(d){
+  const c = name => d.categories.find(x => x.category === name);
+  const a = c('District Level Administration'), s = c('School Level Administration');
+  return {
+    students: d.students,
+    total: d.total_per_adm,
+    admPerAdm: a.dollars_per_adm + s.dollars_per_adm,
+    admPct: a.pct + s.pct,
+    reg: c('Regular Instruction').pct,
+    sped: c('Special Education').pct,
+    cap: c('Capital Expenditures').pct
+  };
+}
+const eccs = DIST.find(d => d.code === ECCS);
+const groupChecks = document.getElementById('groupChecks');
+Object.entries(GROUPS).forEach(([k,g]) => groupChecks.insertAdjacentHTML('beforeend',
+  `<label><input type="checkbox" value="${k}" checked> ${g.label}</label>`));
+const DEFAULT_SET = ["0276-01", "0272-01", "0720-01", "0194-01"];
+let selected = new Set(DEFAULT_SET);
+const ORDER = [ECCS, ...DIST.filter(d => d.code !== ECCS).sort((a,b) => a.name.localeCompare(b.name)).map(d => d.code)];
+function groupsOf(code){ return Object.keys(GROUPS).filter(k => GROUPS[k].codes.includes(code)); }
+function activeGroups(){ return new Set([...groupChecks.querySelectorAll('input:checked')].map(i => i.value)); }
+function visibleCodes(){
+  const act = activeGroups();
+  return ORDER.filter(c => c === ECCS || groupsOf(c).some(g => act.has(g)));
+}
+function renderList(){
+  const list = visibleCodes();
+  const dl = document.getElementById('dlist');
+  dl.innerHTML = list.map(c => {
+    const d = DIST.find(x => x.code === c);
+    const locked = c === ECCS;
+    const tags = groupsOf(c).map(g => GROUPS[g].label).join(', ');
+    return `<label class="${locked?'locked':''}">
+      <input type="checkbox" data-c="${c}" ${selected.has(c)||locked?'checked':''} ${locked?'disabled':''}>
+      ${d.name}<span class="tag">${locked?'always shown':tags}</span></label>`;
+  }).join('');
+  dl.querySelectorAll('input[data-c]').forEach(cb => {
+    cb.onchange = () => { cb.checked ? selected.add(cb.dataset.c) : selected.delete(cb.dataset.c); render(); };
+  });
+}
+// Comparison set = checked districts, ECCS excluded
+function members(){
+  return DIST.filter(d => d.code !== ECCS && selected.has(d.code));
+}
+document.getElementById('selvis').onclick = () => { visibleCodes().forEach(c => selected.add(c)); render(); };
+document.getElementById('clear').onclick = () => { selected = new Set(); render(); };
+document.getElementById('default').onclick = () => { selected = new Set(DEFAULT_SET); render(); };
+function avgMetrics(list){
+  const keys = Object.keys(metrics(eccs));
+  const out = {};
+  keys.forEach(k => out[k] = list.length ? list.reduce((s,d) => s + metrics(d)[k], 0) / list.length : 0);
+  return out;
+}
+function avgCats(list){
+  const L = Math.max(list.length, 1);
+  return CATS.map((c,j) => ({
+    category: c,
+    dollars: list.reduce((s,d) => s + d.categories[j].dollars_per_adm, 0) / L,
+    pct: list.reduce((s,d) => s + d.categories[j].pct, 0) / L
+  }));
+}
+
+const ECC_M = metrics(eccs);
+const ECCS_CATS = eccs.categories;
+
+// Charts
+const perAdm = new Chart(document.getElementById('perAdmChart'), {
+  type:'bar',
+  data:{ labels: CATS.map(c => SHORT[c]), datasets:[
+    { label:'ECCS', data: ECCS_CATS.map(c => c.dollars_per_adm), backgroundColor: COL_ECCS },
+    { label:'Selected average', data: [], backgroundColor: COL_AVG }
+  ]},
+  options:{ indexAxis:'y', maintainAspectRatio:false,
+    plugins:{ legend:{position:'bottom'},
+      tooltip:{callbacks:{label:c => `${c.dataset.label}: ${fmt$(c.parsed.x)} per ADM`}} },
+    scales:{
+      x:{ ticks:{callback:v => '$'+v.toLocaleString()}, grid:{color:cssVar('--border')}, title:{display:true,text:'Dollars per ADM'} },
+      y:{ grid:{display:false} }
+    }
+  }
+});
+
+const share = new Chart(document.getElementById('shareChart'), {
+  type:'bar',
+  data:{ labels:['ECCS','Selected average'], datasets: CATS.map((c,j) => ({
+    label: SHORT[c], data: [0,0], backgroundColor: CCOL[j]
+  }))},
+  options:{ indexAxis:'y', maintainAspectRatio:false,
+    plugins:{ legend:{position:'bottom',labels:{boxWidth:12}},
+      tooltip:{callbacks:{label:c => `${c.dataset.label}: ${c.parsed.x.toFixed(2)}%`}} },
+    scales:{
+      x:{ stacked:true, max:100, ticks:{callback:v => v+'%'}, grid:{color:cssVar('--border')} },
+      y:{ stacked:true, grid:{display:false} }
+    }
+  }
+});
+
+// Detail table dropdown
+const distSel = document.getElementById('distSel');
+function fillDistSel(){
+  const prev = distSel.value;
+  distSel.innerHTML = '<option value="ALL">ECCS and selected districts</option>';
+  [eccs, ...members()].forEach(d => distSel.insertAdjacentHTML('beforeend', `<option value="${d.code}">${d.code} ${d.name}</option>`));
+  if ([...distSel.options].some(o => o.value === prev)) distSel.value = prev;
+}
+function renderTable(){
+  const v = distSel.value;
+  const list = [eccs, ...members()].filter(d => v === 'ALL' || v === d.code);
+  const rows = [];
+  list.forEach(d => d.categories.forEach(c => rows.push([d,c])));
+  document.getElementById('tbody').innerHTML = rows.map(([d,c]) => `
+    <tr><td>${d.code} ${d.name}</td><td>${c.category}</td>
+    <td class="num">${fmtN(d.students)}</td>
+    <td class="num">${fmt$(c.dollars_per_adm)}</td>
+    <td class="num">${fmtP(c.pct)}</td></tr>`).join('');
+}
+distSel.addEventListener('change', renderTable);
+
+function render(){
+  const list = members();
+  const none = list.length === 0;
+  document.getElementById('noneMsg').style.display = none ? 'block' : 'none';
+  const avg = avgMetrics(list);
+  const avgC = avgCats(list);
+  const n = list.length;
+
+  renderList();
+
+  document.getElementById('eccsTotal').textContent = fmt$(ECC_M.total);
+  document.getElementById('eccsStats').innerHTML = `
+    <div><span>Students served (ADM)</span><span>${fmtN(ECC_M.students)}</span></div>
+    <div><span>Admin (district + school) per ADM</span><span>${fmt$(ECC_M.admPerAdm)}</span></div>
+    <div><span>Admin (district + school) share</span><span>${fmtP(ECC_M.admPct)}</span></div>
+    <div><span>Regular instruction share</span><span>${fmtP(ECC_M.reg)}</span></div>
+    <div><span>Special education share</span><span>${fmtP(ECC_M.sped)}</span></div>
+    <div><span>Capital share</span><span>${fmtP(ECC_M.cap)}</span></div>`;
+
+  document.getElementById('avgHead').textContent = n ? `Average of ${n} districts` : 'Selected average';
+  const rowsDef = [
+    ['Total general fund per ADM', 'total', fmt$, sgn$, 'dollar'],
+    ['Students served (ADM)', 'students', fmtN, sgnN, 'num'],
+    ['Admin (district + school) per ADM', 'admPerAdm', fmt$, sgn$, 'dollar'],
+    ['Admin (district + school) share', 'admPct', fmtP, sgnP, 'pct'],
+    ['Regular instruction share', 'reg', fmtP, sgnP, 'pct'],
+    ['Special education share', 'sped', fmtP, sgnP, 'pct'],
+    ['Capital share', 'cap', fmtP, sgnP, 'pct'],
+  ];
+  document.getElementById('cmpBody').innerHTML = rowsDef.map(([label,key,f,sf]) => {
+    const diff = ECC_M[key] - avg[key];
+    const cls = '';
+    return `<tr><td>${label}</td><td class="num">${f(ECC_M[key])}</td>
+      <td class="num">${f(avg[key])}</td>
+      <td class="num ${cls}">${sf(diff)}</td></tr>`;
+  }).join('');
+
+  perAdm.data.datasets[0].data = ECCS_CATS.map(c => c.dollars_per_adm);
+  perAdm.data.datasets[1].data = avgC.map(c => c.dollars);
+  perAdm.update();
+
+  share.data.datasets.forEach((ds,j) => {
+    ds.data = [ECCS_CATS[j].pct, avgC[j].pct];
+  });
+  share.update();
+
+  fillDistSel();
+  renderTable();
+  if (typeof renderRank === 'function') renderRank();
+}
+
+// ---- Ranking ----
+const SHORTN = n => n.replace(/ (Public School District|Public Schools|Area Public Schools|Area Schools|School District|Public School)$/,'');
+const METRICS = [
+  {label:'Total general fund per ADM', fmt:fmt$, get:d=>d.total_per_adm, group:'Overall'},
+  {label:'Students served (ADM)', fmt:fmtN, get:d=>d.students, group:'Overall'},
+  {label:'Admin (district + school) per ADM', fmt:fmt$, get:d=>metrics(d).admPerAdm, group:'Overall'},
+  {label:'Admin (district + school) share', fmt:fmtP, get:d=>metrics(d).admPct, group:'Overall'},
+];
+CATS.forEach((c,j) => {
+  METRICS.push({label:`${SHORT[c]}: per ADM`, fmt:fmt$, get:d=>d.categories[j].dollars_per_adm, group:'Dollars per ADM'});
+});
+CATS.forEach((c,j) => {
+  METRICS.push({label:`${SHORT[c]}: share of general fund`, fmt:fmtP, get:d=>d.categories[j].pct, group:'Share of general fund'});
+});
+const metricSel = document.getElementById('metricSel');
+const orderSel = document.getElementById('orderSel');
+const scopeSel = document.getElementById('scopeSel');
+METRICS.forEach((m,i) => {});
+['Overall','Dollars per ADM','Share of general fund'].forEach(g => {
+  const og = document.createElement('optgroup'); og.label = g;
+  METRICS.forEach((m,i) => { if (m.group===g) { const o=document.createElement('option'); o.value=i; o.textContent=m.label; og.appendChild(o); } });
+  metricSel.appendChild(og);
+});
+metricSel.value = '0';
+
+const rankChart = new Chart(document.getElementById('rankChart'), {
+  type:'bar',
+  data:{labels:[], datasets:[{data:[], backgroundColor:[]}]},
+  options:{ indexAxis:'y', maintainAspectRatio:false,
+    plugins:{ legend:{display:false}, tooltip:{callbacks:{label:c => METRICS[metricSel.value].fmt(c.parsed.x)}} },
+    scales:{ x:{ ticks:{callback:v => METRICS[metricSel.value].fmt(v)}, grid:{color:cssVar('--border')} },
+             y:{ grid:{display:false} } }
+  }
+});
+
+function renderRank(){
+  const m = METRICS[metricSel.value];
+  let list = DIST.slice();
+  if (scopeSel.value === 'group') {
+    const keep = new Set([ECCS, ...members().map(d => d.code)]);
+    list = list.filter(d => keep.has(d.code));
+  }
+  const dir = orderSel.value === 'desc' ? -1 : 1;
+  list.sort((a,b) => dir * (m.get(a) - m.get(b)));
+  const pos = list.findIndex(d => d.code === ECCS) + 1;
+  const note = document.getElementById('rankNote');
+  note.textContent = pos
+    ? `ECCS ranks ${pos} of ${list.length} on this measure (${m.fmt(m.get(eccs))}).`
+    : 'ECCS is not in the current selection.';
+  rankChart.data.labels = list.map(d => SHORTN(d.name));
+  rankChart.data.datasets[0].data = list.map(d => m.get(d));
+  rankChart.data.datasets[0].backgroundColor = list.map(d => d.code === ECCS ? COL_ECCS : '#9aa9bf');
+  document.getElementById('rankBox').style.height = Math.max(260, list.length * 30 + 60) + 'px';
+  rankChart.update();
+}
+metricSel.addEventListener('change', renderRank);
+orderSel.addEventListener('change', renderRank);
+scopeSel.addEventListener('change', renderRank);
+
+groupChecks.addEventListener('change', () => {
+  const act = activeGroups();
+  // remove selections that are no longer visible in any active group
+  [...selected].forEach(c => { if (c !== ECCS && !groupsOf(c).some(g => act.has(g))) selected.delete(c); });
+  render();
+});
+render();
+</script>
+</body>
+</html>
